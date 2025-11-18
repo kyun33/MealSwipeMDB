@@ -24,7 +24,6 @@ const Tab = createBottomTabNavigator();
 
 const RootNavigator = () => {
   return (
-    <NavigationContainer>
       <Tab.Navigator>
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="SellHub" component={SellHubScreen} />
@@ -42,7 +41,6 @@ const RootNavigator = () => {
         <Tab.Screen name="IDVerification" component={IDVerificationScreen} />
         <Tab.Screen name="Onboarding" component={OnboardingScreen} />
       </Tab.Navigator>
-    </NavigationContainer>
   );
 };
 
