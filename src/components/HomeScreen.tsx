@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
+import { getDiningOffers, getGrubhubOffers, getProfileById, createOrder, auth } from '../services/api';
 import type { Screen } from '../App';
+import type { DiningOffer, GrubhubOffer } from '../services/api';
 
 interface HomeScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -10,72 +12,147 @@ interface HomeScreenProps {
   onTabChange: (tab: 'buy' | 'sell' | 'orders' | 'profile') => void;
 }
 
-const diningHallListings = [
-  {
-    id: 1,
-    name: 'Foothill',
-    price: 6,
-    rating: 4.8,
-    timeWindow: '5:30–7:00 PM',
-    sellerName: 'Sarah M.'
-  },
-  {
-    id: 2,
-    name: 'Cafe 3',
-    price: 7,
-    rating: 4.9,
-    timeWindow: '6:00–8:00 PM',
-    sellerName: 'Alex K.'
-  },
-  {
-    id: 3,
-    name: 'Clark Kerr',
-    price: 6,
-    rating: 4.7,
-    timeWindow: '5:00–6:30 PM',
-    sellerName: 'Jordan T.'
-  },
-  {
-    id: 4,
-    name: 'Crossroads',
-    price: 8,
-    rating: 5.0,
-    timeWindow: '6:30–8:00 PM',
-    sellerName: 'Taylor P.'
-  },
-];
-
-const grubhubListings = [
-  {
-    id: 1,
-    restaurant: 'Brown\'s Cafe',
-    location: 'Unit 3 Lobby',
-    price: 10,
-    rating: 4.9,
-    pickupTime: '6:45 PM',
-    sellerName: 'Emma W.'
-  },
-  {
-    id: 2,
-    restaurant: 'Ladle and Leaf',
-    location: 'Crossroads Entrance',
-    price: 12,
-    rating: 4.8,
-    pickupTime: '7:15 PM',
-    sellerName: 'Chris L.'
-  },
-  {
-    id: 3,
-    restaurant: 'Monsoon',
-    location: 'Unit 1 Front Desk',
-    price: 11,
-    rating: 5.0,
-    pickupTime: '6:30 PM',
-    sellerName: 'Maya S.'
-  },
-];
+interface ListingWithSeller {
+  id: string;
+  name: string;
+  price: number;
+  rating: number;
+  sellerName: string;
+  timeWindow?: string;
+  pickupTime?: string;
+  location?: string;
+  offer: DiningOffer | GrubhubOffer;
+}
 
 export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenProps) {
+  const [diningListings, setDiningListings] = useState<ListingWithSeller[]>([]);
+  const [grubhubListings, setGrubhubListings] = useState<ListingWithSeller[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const user = await auth.getCurrentUser();
+      setCurrentUserId(user?.id || null);
+
+      // Fetch active offers
+      const [diningOffers, grubhubOffers] = await Promise.all([
+        getDiningOffers({ status: 'active' }),
+        getGrubhubOffers({ status: 'active' })
+      ]);
+
+      // Fetch seller profiles for dining offers
+      const diningWithSellers = await Promise.all(
+        diningOffers.map(async (offer) => {
+          const seller = await getProfileById(offer.seller_id);
+          const diningHallNames: Record<string, string> = {
+            foothill: 'Foothill',
+            cafe3: 'Cafe 3',
+            clarkkerr: 'Clark Kerr',
+            crossroads: 'Crossroads'
+          };
+          return {
+            id: offer.id,
+            name: diningHallNames[offer.dining_hall] || offer.dining_hall,
+            price: Number(offer.price),
+            rating: seller?.rating || 0,
+            sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
+            timeWindow: `${offer.start_time}–${offer.end_time}`,
+            offer
+          };
+        })
+      );
+
+      // Fetch seller profiles for grubhub offers
+      const grubhubWithSellers = await Promise.all(
+        grubhubOffers.map(async (offer) => {
+          const seller = await getProfileById(offer.seller_id);
+          const restaurantNames: Record<string, string> = {
+            browns: 'Brown\'s Cafe',
+            ladle: 'Ladle and Leaf',
+            monsoon: 'Monsoon'
+          };
+          return {
+            id: offer.id,
+            name: restaurantNames[offer.restaurant] || offer.restaurant,
+            price: Number(offer.price),
+            rating: seller?.rating || 0,
+            sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
+            location: offer.pickup_location,
+            pickupTime: offer.offer_date,
+            offer
+          };
+        })
+      );
+
+      setDiningListings(diningWithSellers);
+      setGrubhubListings(grubhubWithSellers);
+    } catch (error) {
+      console.error('Error loading offers:', error);
+      Alert.alert('Error', 'Failed to load offers. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRequestSwipe = async (offer: DiningOffer | GrubhubOffer, type: 'dining' | 'grubhub') => {
+    if (!currentUserId) {
+      Alert.alert('Error', 'Please sign in to request a swipe');
+      return;
+    }
+
+    try {
+      if (type === 'dining') {
+        const diningOffer = offer as DiningOffer;
+        await createOrder({
+          order_type: 'dining_offer',
+          dining_offer_id: diningOffer.id,
+          buyer_id: currentUserId,
+          seller_id: diningOffer.seller_id,
+          item_type: 'dining',
+          dining_hall: diningOffer.dining_hall,
+          pickup_date: diningOffer.offer_date,
+          pickup_time_start: diningOffer.start_time,
+          pickup_time_end: diningOffer.end_time,
+          price: Number(diningOffer.price)
+        });
+      } else {
+        const grubhubOffer = offer as GrubhubOffer;
+        await createOrder({
+          order_type: 'grubhub_offer',
+          grubhub_offer_id: grubhubOffer.id,
+          buyer_id: currentUserId,
+          seller_id: grubhubOffer.seller_id,
+          item_type: 'grubhub',
+          restaurant: grubhubOffer.restaurant,
+          pickup_location: grubhubOffer.pickup_location,
+          pickup_date: grubhubOffer.offer_date,
+          pickup_time_start: '12:00',
+          price: Number(grubhubOffer.price)
+        });
+      }
+      Alert.alert('Success', 'Order created successfully!');
+      onNavigate('orders-buyer');
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      Alert.alert('Error', error.message || 'Failed to create order. Please try again.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#003262" />
+        <Text style={styles.loadingText}>Loading offers...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -107,88 +184,100 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dining Hall Swipe-ins</Text>
           
-          <View style={styles.listingsContainer}>
-            {diningHallListings.map((listing) => (
-              <TouchableOpacity
-                key={listing.id}
-                style={styles.listingCard}
-                onPress={() => onNavigate('order-details-dining')}
-              >
-                <View style={styles.listingHeader}>
-                  <View style={styles.listingInfo}>
-                    <Text style={styles.listingName}>{listing.name}</Text>
-                    <View style={styles.ratingContainer}>
-                      <MaterialCommunityIcons name="star" size={16} color="#FDB515" />
-                      <Text style={styles.ratingText}>{listing.rating}</Text>
-                      <Text style={styles.sellerText}> • {listing.sellerName}</Text>
+          {diningListings.length === 0 ? (
+            <Text style={styles.emptyText}>No dining hall offers available</Text>
+          ) : (
+            <View style={styles.listingsContainer}>
+              {diningListings.map((listing) => (
+                <TouchableOpacity
+                  key={listing.id}
+                  style={styles.listingCard}
+                  onPress={() => onNavigate('order-details-dining')}
+                >
+                  <View style={styles.listingHeader}>
+                    <View style={styles.listingInfo}>
+                      <Text style={styles.listingName}>{listing.name}</Text>
+                      <View style={styles.ratingContainer}>
+                        <MaterialCommunityIcons name="star" size={16} color="#FDB515" />
+                        <Text style={styles.ratingText}>{listing.rating.toFixed(1)}</Text>
+                        <Text style={styles.sellerText}> • {listing.sellerName}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.price}>${listing.price}</Text>
                     </View>
                   </View>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.price}>${listing.price}</Text>
+
+                  <View style={styles.timeContainer}>
+                    <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
+                    <Text style={styles.timeText}>{listing.timeWindow}</Text>
                   </View>
-                </View>
 
-                <View style={styles.timeContainer}>
-                  <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
-                  <Text style={styles.timeText}>{listing.timeWindow}</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.requestButton, styles.diningButton]}
-                  onPress={() => {}}
-                >
-                  <Text style={styles.requestButtonText}>Request Swipe</Text>
+                  <TouchableOpacity
+                    style={[styles.requestButton, styles.diningButton]}
+                    onPress={() => handleRequestSwipe(listing.offer, 'dining')}
+                  >
+                    <Text style={styles.requestButtonText}>Request Swipe</Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Grubhub Orders Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Grubhub Orders</Text>
           
-          <View style={styles.listingsContainer}>
-            {grubhubListings.map((listing) => (
-              <TouchableOpacity
-                key={listing.id}
-                style={[styles.listingCard, styles.grubhubCard]}
-                onPress={() => onNavigate('order-details-grubhub')}
-              >
-                <View style={styles.listingHeader}>
-                  <View style={[styles.listingInfo, styles.flex1]}>
-                    <Text style={styles.listingName}>{listing.restaurant}</Text>
-                    <View style={styles.ratingContainer}>
-                      <MaterialCommunityIcons name="star" size={16} color="#FDB515" />
-                      <Text style={styles.ratingText}>{listing.rating}</Text>
-                      <Text style={styles.sellerText}> • {listing.sellerName}</Text>
+          {grubhubListings.length === 0 ? (
+            <Text style={styles.emptyText}>No Grubhub offers available</Text>
+          ) : (
+            <View style={styles.listingsContainer}>
+              {grubhubListings.map((listing) => (
+                <TouchableOpacity
+                  key={listing.id}
+                  style={[styles.listingCard, styles.grubhubCard]}
+                  onPress={() => onNavigate('order-details-grubhub')}
+                >
+                  <View style={styles.listingHeader}>
+                    <View style={[styles.listingInfo, styles.flex1]}>
+                      <Text style={styles.listingName}>{listing.name}</Text>
+                      <View style={styles.ratingContainer}>
+                        <MaterialCommunityIcons name="star" size={16} color="#FDB515" />
+                        <Text style={styles.ratingText}>{listing.rating.toFixed(1)}</Text>
+                        <Text style={styles.sellerText}> • {listing.sellerName}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.price}>${listing.price}</Text>
                     </View>
                   </View>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.price}>${listing.price}</Text>
-                  </View>
-                </View>
 
-                <View style={styles.detailsContainer}>
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6B7280" />
-                    <Text style={styles.detailText}>{listing.location}</Text>
+                  <View style={styles.detailsContainer}>
+                    {listing.location && (
+                      <View style={styles.detailRow}>
+                        <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6B7280" />
+                        <Text style={styles.detailText}>{listing.location}</Text>
+                      </View>
+                    )}
+                    {listing.pickupTime && (
+                      <View style={styles.detailRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
+                        <Text style={styles.detailText}>Pickup: {listing.pickupTime}</Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
-                    <Text style={styles.detailText}>Pickup: {listing.pickupTime}</Text>
-                  </View>
-                </View>
 
-                <TouchableOpacity
-                  style={[styles.requestButton, styles.grubhubButton]}
-                  onPress={() => {}}
-                >
-                  <Text style={styles.requestButtonText}>Request Order</Text>
+                  <TouchableOpacity
+                    style={[styles.requestButton, styles.grubhubButton]}
+                    onPress={() => handleRequestSwipe(listing.offer, 'grubhub')}
+                  >
+                    <Text style={styles.requestButtonText}>Request Order</Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -202,6 +291,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
   },
   header: {
     paddingHorizontal: 24,
@@ -271,6 +369,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   listingsContainer: {
     gap: 12,

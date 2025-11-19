@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView } from 'react-native';
 import { OnboardingScreen } from './components/OnboardingScreen';
+import { LoginScreen } from './components/LoginScreen';
 import { IDVerificationScreen } from './components/IDVerificationScreen';
 import { HomeScreen } from './components/HomeScreen';
+import { auth } from './services/api';
 import { SellHubScreen } from './components/SellHubScreen';
 import { CreateOfferDining } from './components/CreateOfferDining';
 import { CreateOfferGrubhub } from './components/CreateOfferGrubhub';
@@ -18,6 +20,7 @@ import { ChatScreen } from './components/ChatScreen';
 
 export type Screen = 
   | 'onboarding'
+  | 'login'
   | 'id-verification'
   | 'home'
   | 'sell-hub'
@@ -37,9 +40,31 @@ export type Screen =
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
   const [bottomNav, setBottomNav] = useState<'buy' | 'sell' | 'orders' | 'profile'>('buy');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | undefined>();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const handleNavigate = (screen: Screen) => {
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const user = await auth.getCurrentUser();
+    if (user) {
+      setIsAuthenticated(true);
+      setCurrentScreen('home');
+    }
+  };
+
+  const handleNavigate = (screen: Screen, orderId?: string) => {
     setCurrentScreen(screen);
+    if (orderId) {
+      setSelectedOrderId(orderId);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    setCurrentScreen('home');
   };
 
   const handleBottomNavChange = (tab: 'buy' | 'sell' | 'orders' | 'profile') => {
@@ -54,7 +79,13 @@ function App() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {currentScreen === 'onboarding' && (
-          <OnboardingScreen onGetStarted={() => handleNavigate('id-verification')} />
+          <OnboardingScreen onGetStarted={() => handleNavigate('login')} />
+        )}
+        {currentScreen === 'login' && (
+          <LoginScreen 
+            onNavigate={handleNavigate} 
+            onLoginSuccess={handleLoginSuccess}
+          />
         )}
         {currentScreen === 'id-verification' && (
           <IDVerificationScreen onComplete={() => handleNavigate('home')} />
@@ -122,7 +153,7 @@ function App() {
           />
         )}
         {currentScreen === 'rating' && (
-          <RatingScreen onNavigate={handleNavigate} />
+          <RatingScreen onNavigate={handleNavigate} orderId={selectedOrderId} />
         )}
         {currentScreen === 'profile' && (
           <ProfileScreen 
@@ -132,10 +163,10 @@ function App() {
           />
         )}
         {currentScreen === 'chat-dining' && (
-          <ChatScreen onNavigate={handleNavigate} orderType="dining" />
+          <ChatScreen onNavigate={handleNavigate} orderId={selectedOrderId} orderType="dining" />
         )}
         {currentScreen === 'chat-grubhub' && (
-          <ChatScreen onNavigate={handleNavigate} orderType="grubhub" />
+          <ChatScreen onNavigate={handleNavigate} orderId={selectedOrderId} orderType="grubhub" />
         )}
       </View>
     </SafeAreaView>

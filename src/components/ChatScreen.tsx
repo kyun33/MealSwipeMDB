@@ -1,61 +1,155 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getMessages, createMessage, getOrderById, getProfileById, markAllMessagesAsRead, auth } from '../services/api';
 import type { Screen } from '../App';
+import type { Message as APIMessage, Order } from '../services/api';
 
 interface ChatScreenProps {
   onNavigate: (screen: Screen) => void;
+  orderId?: string;
   orderType?: 'dining' | 'grubhub';
 }
 
-interface Message {
-  id: number;
-  text: string;
-  sender: 'me' | 'them';
-  time: string;
-}
-
-export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: 'Hi! I just bought your meal swipe.',
-      sender: 'me',
-      time: '2:15 PM'
-    },
-    {
-      id: 2,
-      text: 'Great! I\'ll be at the dining hall entrance at 6:30.',
-      sender: 'them',
-      time: '2:16 PM'
-    },
-    {
-      id: 3,
-      text: 'Perfect! See you then.',
-      sender: 'me',
-      time: '2:17 PM'
-    }
-  ]);
-  
+export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatScreenProps) {
+  const [messages, setMessages] = useState<APIMessage[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [otherUser, setOtherUser] = useState<{ name: string; initials: string } | null>(null);
   const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (orderId) {
+      loadChatData();
+    }
+  }, [orderId]);
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
-  const handleSend = () => {
-    if (inputText.trim()) {
-      const newMessage: Message = {
-        id: messages.length + 1,
-        text: inputText,
-        sender: 'me',
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-      };
-      setMessages([...messages, newMessage]);
-      setInputText('');
+  const loadChatData = async () => {
+    if (!orderId) return;
+
+    try {
+      setLoading(true);
+      const user = await auth.getCurrentUser();
+      if (!user) {
+        Alert.alert('Error', 'Please sign in to view messages');
+        setLoading(false);
+        return;
+      }
+      setCurrentUserId(user.id);
+
+      // Load order and messages
+      const [orderData, messagesData] = await Promise.all([
+        getOrderById(orderId),
+        getMessages(orderId)
+      ]);
+
+      if (!orderData) {
+        Alert.alert('Error', 'Order not found');
+        return;
+      }
+
+      setOrder(orderData);
+      setMessages(messagesData);
+
+      // Load other user's profile
+      const otherUserId = orderData.buyer_id === user.id ? orderData.seller_id : orderData.buyer_id;
+      const otherUserProfile = await getProfileById(otherUserId);
+      if (otherUserProfile) {
+        const nameParts = otherUserProfile.full_name.split(' ');
+        setOtherUser({
+          name: otherUserProfile.full_name,
+          initials: (nameParts[0][0] + (nameParts[1]?.[0] || '')).toUpperCase()
+        });
+      }
+
+      // Mark messages as read
+      await markAllMessagesAsRead(orderId, user.id);
+    } catch (error) {
+      console.error('Error loading chat:', error);
+      Alert.alert('Error', 'Failed to load messages. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleSend = async () => {
+    if (!inputText.trim() || !orderId || !currentUserId || !order) return;
+
+    try {
+      setSending(true);
+      const otherUserId = order.buyer_id === currentUserId ? order.seller_id : order.buyer_id;
+      
+      const newMessage = await createMessage({
+        order_id: orderId,
+        sender_id: currentUserId,
+        receiver_id: otherUserId,
+        message_text: inputText.trim()
+      });
+
+      setMessages([...messages, newMessage]);
+      setInputText('');
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', error.message || 'Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getOrderName = (order: Order) => {
+    if (order.item_type === 'dining') {
+      const diningHallNames: Record<string, string> = {
+        foothill: 'Foothill',
+        cafe3: 'Cafe 3',
+        clarkkerr: 'Clark Kerr',
+        crossroads: 'Crossroads'
+      };
+      return diningHallNames[order.dining_hall!] || order.dining_hall || 'Dining Hall';
+    } else {
+      const restaurantNames: Record<string, string> = {
+        browns: 'Brown\'s Cafe',
+        ladle: 'Ladle and Leaf',
+        monsoon: 'Monsoon'
+      };
+      return restaurantNames[order.restaurant!] || order.restaurant || 'Restaurant';
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#003262" />
+        <Text style={styles.loadingText}>Loading messages...</Text>
+      </View>
+    );
+  }
+
+  if (!order || !otherUser) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>No chat available</Text>
+      </View>
+    );
+  }
 
   const quickReplies = [
     'Running 5 min late',
@@ -81,10 +175,10 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>SJ</Text>
+              <Text style={styles.avatarText}>{otherUser.initials}</Text>
             </View>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerName}>Sarah Johnson</Text>
+              <Text style={styles.headerName}>{otherUser.name}</Text>
               <View style={styles.onlineIndicator}>
                 <View style={styles.onlineDot} />
                 <Text style={styles.onlineText}>Online</Text>
@@ -92,7 +186,7 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => onNavigate(orderType === 'dining' ? 'order-details-dining' : 'order-details-grubhub')}
+            onPress={() => onNavigate(order.item_type === 'dining' ? 'order-details-dining' : 'order-details-grubhub')}
             style={styles.infoButton}
           >
             <MaterialCommunityIcons name="information-outline" size={20} color="#003262" />
@@ -104,23 +198,26 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
       <View style={styles.banner}>
         <View style={styles.bannerContent}>
           <View style={styles.bannerInfo}>
-            <Text style={styles.bannerTitle}>
-              {orderType === 'dining' ? 'Crossroads Dining' : 'Brown\'s Cafe'}
-            </Text>
+            <Text style={styles.bannerTitle}>{getOrderName(order)}</Text>
             <View style={styles.bannerDetails}>
               <View style={styles.bannerDetail}>
                 <MaterialCommunityIcons name="clock-outline" size={12} color="#111827" />
-                <Text style={styles.bannerDetailText}>6:30 - 7:00 PM</Text>
+                <Text style={styles.bannerDetailText}>
+                  {order.pickup_time_start.substring(0, 5)}
+                  {order.pickup_time_end ? ` - ${order.pickup_time_end.substring(0, 5)}` : ''}
+                </Text>
               </View>
-              <View style={styles.bannerDetail}>
-                <MaterialCommunityIcons name="map-marker-outline" size={12} color="#6B7280" />
-                <Text style={[styles.bannerDetailText, styles.bannerDetailTextSecondary]}>Main Entrance</Text>
-              </View>
+              {order.pickup_location && (
+                <View style={styles.bannerDetail}>
+                  <MaterialCommunityIcons name="map-marker-outline" size={12} color="#6B7280" />
+                  <Text style={[styles.bannerDetailText, styles.bannerDetailTextSecondary]}>
+                    {order.pickup_location}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
-          <Text style={styles.bannerPrice}>
-            ${orderType === 'dining' ? '6' : '10'}
-          </Text>
+          <Text style={styles.bannerPrice}>${Number(order.price)}</Text>
         </View>
       </View>
 
@@ -130,43 +227,46 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
       >
-        {/* Date Separator */}
-        <View style={styles.dateSeparator}>
-          <View style={styles.dateBadge}>
-            <Text style={styles.dateText}>Today</Text>
+        {messages.length > 0 && (
+          <View style={styles.dateSeparator}>
+            <View style={styles.dateBadge}>
+              <Text style={styles.dateText}>{formatDate(messages[0].created_at)}</Text>
+            </View>
           </View>
-        </View>
+        )}
 
-        {/* Messages */}
-        {messages.map((message) => (
-          <View 
-            key={message.id}
-            style={[
-              styles.messageWrapper,
-              message.sender === 'me' ? styles.messageWrapperRight : styles.messageWrapperLeft
-            ]}
-          >
+        {messages.map((message) => {
+          const isMe = message.sender_id === currentUserId;
+          return (
             <View 
+              key={message.id}
               style={[
-                styles.messageBubble,
-                message.sender === 'me' ? styles.messageBubbleMe : styles.messageBubbleThem
+                styles.messageWrapper,
+                isMe ? styles.messageWrapperRight : styles.messageWrapperLeft
               ]}
             >
+              <View 
+                style={[
+                  styles.messageBubble,
+                  isMe ? styles.messageBubbleMe : styles.messageBubbleThem
+                ]}
+              >
+                <Text style={[
+                  styles.messageText,
+                  isMe ? styles.messageTextMe : styles.messageTextThem
+                ]}>
+                  {message.message_text}
+                </Text>
+              </View>
               <Text style={[
-                styles.messageText,
-                message.sender === 'me' ? styles.messageTextMe : styles.messageTextThem
+                styles.messageTime,
+                isMe ? styles.messageTimeRight : styles.messageTimeLeft
               ]}>
-                {message.text}
+                {formatTime(message.created_at)}
               </Text>
             </View>
-            <Text style={[
-              styles.messageTime,
-              message.sender === 'me' ? styles.messageTimeRight : styles.messageTimeLeft
-            ]}>
-              {message.time}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* Quick Replies */}
@@ -198,20 +298,25 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
             style={styles.textInput}
             multiline
             maxLength={500}
+            editable={!sending}
           />
           <TouchableOpacity
             onPress={handleSend}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || sending}
             style={[
               styles.sendButton,
-              !inputText.trim() && styles.sendButtonDisabled
+              (!inputText.trim() || sending) && styles.sendButtonDisabled
             ]}
           >
-            <MaterialCommunityIcons 
-              name="send" 
-              size={20} 
-              color={inputText.trim() ? "#FFFFFF" : "#9CA3AF"} 
-            />
+            {sending ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <MaterialCommunityIcons 
+                name="send" 
+                size={20} 
+                color={inputText.trim() ? "#FFFFFF" : "#9CA3AF"} 
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -223,6 +328,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
   },
   header: {
     paddingHorizontal: 24,
