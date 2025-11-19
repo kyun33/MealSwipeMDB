@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { View, StyleSheet, SafeAreaView } from 'react-native';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { IDVerificationScreen } from './components/IDVerificationScreen';
 import { HomeScreen } from './components/HomeScreen';
@@ -50,8 +51,8 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden" style={{ height: '812px' }}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
         {currentScreen === 'onboarding' && (
           <OnboardingScreen onGetStarted={() => handleNavigate('id-verification')} />
         )}
@@ -136,9 +137,20 @@ function App() {
         {currentScreen === 'chat-grubhub' && (
           <ChatScreen onNavigate={handleNavigate} orderType="grubhub" />
         )}
-      </div>
-    </div>
+      </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  content: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+});
 
 export default App;

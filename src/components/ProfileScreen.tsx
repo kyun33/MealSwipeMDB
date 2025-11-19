@@ -1,6 +1,7 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
-import { Star, CreditCard, History, HelpCircle, LogOut, ChevronRight, Edit } from 'lucide-react';
-import { Button } from './ui/button';
 import type { Screen } from '../App';
 
 interface ProfileScreenProps {
@@ -11,164 +12,66 @@ interface ProfileScreenProps {
 
 export function ProfileScreen({ onNavigate, activeTab, onTabChange }: ProfileScreenProps) {
   return (
-    <div className="h-full flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="px-6 pt-12 pb-8" style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}>
-        <h1 className="text-white mb-6" style={{ fontSize: '28px', fontWeight: '700' }}>
-          Profile
-        </h1>
-
-        {/* Profile Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: '#003262' }}>
-                <span className="text-white" style={{ fontSize: '28px', fontWeight: '600' }}>
-                  JD
-                </span>
-              </div>
-              <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border-2 border-white flex items-center justify-center shadow-lg">
-                <Edit className="w-4 h-4" style={{ color: '#003262' }} />
-              </button>
-            </div>
-            <div className="flex-1">
-              <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#111827' }}>
-                John Doe
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6B7280' }}>
-                john.doe@berkeley.edu
-              </p>
-            </div>
-          </div>
-
-          {/* Rating */}
-          <div className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl" style={{ background: '#F9FAFB' }}>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star 
-                  key={star} 
-                  className="w-6 h-6 fill-current" 
-                  style={{ color: '#FDB515' }} 
-                />
-              ))}
-            </div>
-            <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginLeft: '4px' }}>
-              4.9
-            </span>
-            <span style={{ fontSize: '14px', color: '#6B7280' }}>
-              (32 reviews)
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-white rounded-2xl p-4 text-center">
-            <div style={{ fontSize: '28px', fontWeight: '700', color: '#003262' }}>
-              12
-            </div>
-            <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
-              Completed Sales
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-4 text-center">
-            <div style={{ fontSize: '28px', fontWeight: '700', color: '#FDB515' }}>
-              18
-            </div>
-            <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
-              Purchases Made
-            </p>
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <div className="space-y-3">
-          {/* Payment Settings */}
-          <button className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#DBEAFE' }}>
-              <CreditCard className="w-6 h-6" style={{ color: '#003262' }} />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                Payment Settings
-              </h3>
-              <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px' }}>
-                Manage payment methods
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-          </button>
-
-          {/* Order History */}
-          <button 
-            onClick={() => onNavigate('orders-buyer')}
-            className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#FEF3C7' }}>
-              <History className="w-6 h-6" style={{ color: '#FDB515' }} />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                Order History
-              </h3>
-              <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px' }}>
-                View all transactions
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-          </button>
-
-          {/* Help & Support */}
-          <button className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#DCFCE7' }}>
-              <HelpCircle className="w-6 h-6" style={{ color: '#059669' }} />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                Help & Support
-              </h3>
-              <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px' }}>
-                FAQs and contact us
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5" style={{ color: '#9CA3AF' }} />
-          </button>
-        </div>
-
-        {/* Logout Button */}
-        <div className="mt-8">
-          <Button
-            onClick={() => onNavigate('onboarding')}
-            variant="outline"
-            className="w-full h-12 rounded-xl border-2 flex items-center justify-center gap-2"
-            style={{ 
-              borderColor: '#FCA5A5',
-              color: '#DC2626',
-              fontSize: '15px',
-              fontWeight: '600'
-            }}
-          >
-            <LogOut className="w-5 h-5" />
-            Log Out
-          </Button>
-        </div>
-
-        {/* App Info */}
-        <div className="text-center mt-8 mb-4">
-          <p style={{ fontSize: '12px', color: '#9CA3AF' }}>
-            Cal Meal Share v1.0.0
-          </p>
-          <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
-            Made for UC Berkeley students
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>JD</Text>
+          </View>
+          <Text style={styles.name}>John Doe</Text>
+          <Text style={styles.email}>john.doe@berkeley.edu</Text>
+          <View style={styles.ratingContainer}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <MaterialCommunityIcons key={star} name="star" size={24} color="#FDB515" />
+            ))}
+            <Text style={styles.ratingText}>5.0</Text>
+          </View>
+        </View>
+        <View style={styles.menuSection}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => onNavigate('orders-buyer')}>
+            <MaterialCommunityIcons name="receipt" size={24} color="#003262" />
+            <Text style={styles.menuText}>My Orders</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <MaterialCommunityIcons name="credit-card" size={24} color="#003262" />
+            <Text style={styles.menuText}>Payment Methods</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <MaterialCommunityIcons name="help-circle-outline" size={24} color="#003262" />
+            <Text style={styles.menuText}>Help & Support</Text>
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem}>
+            <MaterialCommunityIcons name="logout" size={24} color="#DC2626" />
+            <Text style={[styles.menuText, styles.logoutText]}>Log Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
       <BottomNav activeTab={activeTab} onTabChange={onTabChange} />
-    </div>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  header: { paddingTop: 48, paddingBottom: 24, paddingHorizontal: 24, backgroundColor: '#003262' },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF' },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 24, gap: 24 },
+  profileCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#003262', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  avatarText: { fontSize: 28, fontWeight: '600', color: '#FFFFFF' },
+  name: { fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  email: { fontSize: 14, color: '#6B7280', marginBottom: 16 },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F9FAFB', borderRadius: 12 },
+  ratingText: { fontSize: 16, fontWeight: '600', color: '#111827', marginLeft: 8 },
+  menuSection: { backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden' },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', gap: 16 },
+  menuText: { flex: 1, fontSize: 16, color: '#111827' },
+  logoutText: { color: '#DC2626' },
+});

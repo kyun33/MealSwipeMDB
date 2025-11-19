@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Clock, MapPin, Info } from 'lucide-react';
-import { Button } from './ui/button';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Screen } from '../App';
 
 interface ChatScreenProps {
@@ -38,14 +38,10 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
   ]);
   
   const [inputText, setInputText] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    scrollToBottom();
+    scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
   const handleSend = () => {
@@ -61,13 +57,6 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   const quickReplies = [
     'Running 5 min late',
     'I\'m here!',
@@ -76,174 +65,410 @@ export function ChatScreen({ onNavigate, orderType = 'dining' }: ChatScreenProps
   ];
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       {/* Header */}
-      <div className="px-6 pt-12 pb-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center gap-3 mb-3">
-          <button 
-            onClick={() => onNavigate('orders-buyer')}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            onPress={() => onNavigate('orders-buyer')}
+            style={styles.backButton}
           >
-            <ArrowLeft className="w-5 h-5" style={{ color: '#003262' }} />
-          </button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#003262' }}>
-                <span className="text-white" style={{ fontSize: '16px', fontWeight: '600' }}>
-                  SJ
-                </span>
-              </div>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  Sarah Johnson
-                </h2>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full" style={{ background: '#10B981' }}></div>
-                  <span style={{ fontSize: '12px', color: '#6B7280' }}>Online</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate(orderType === 'dining' ? 'order-details-dining' : 'order-details-grubhub')}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+            <MaterialCommunityIcons name="arrow-left" size={20} color="#003262" />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>SJ</Text>
+            </View>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerName}>Sarah Johnson</Text>
+              <View style={styles.onlineIndicator}>
+                <View style={styles.onlineDot} />
+                <Text style={styles.onlineText}>Online</Text>
+              </View>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => onNavigate(orderType === 'dining' ? 'order-details-dining' : 'order-details-grubhub')}
+            style={styles.infoButton}
           >
-            <Info className="w-5 h-5" style={{ color: '#003262' }} />
-          </button>
-        </div>
-      </div>
+            <MaterialCommunityIcons name="information-outline" size={20} color="#003262" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Order Summary Banner */}
-      <div className="px-6 py-3 bg-blue-50 border-b border-blue-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <p style={{ fontSize: '12px', fontWeight: '600', color: '#003262', marginBottom: '2px' }}>
+      <View style={styles.banner}>
+        <View style={styles.bannerContent}>
+          <View style={styles.bannerInfo}>
+            <Text style={styles.bannerTitle}>
               {orderType === 'dining' ? 'Crossroads Dining' : 'Brown\'s Cafe'}
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" style={{ color: '#111827' }} />
-                <span style={{ fontSize: '11px', color: '#111827' }}>6:30 - 7:00 PM</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" style={{ color: '#6B7280' }} />
-                <span style={{ fontSize: '11px', color: '#6B7280' }}>Main Entrance</span>
-              </div>
-            </div>
-          </div>
-          <div style={{ fontSize: '18px', fontWeight: '700', color: '#003262' }}>
+            </Text>
+            <View style={styles.bannerDetails}>
+              <View style={styles.bannerDetail}>
+                <MaterialCommunityIcons name="clock-outline" size={12} color="#111827" />
+                <Text style={styles.bannerDetailText}>6:30 - 7:00 PM</Text>
+              </View>
+              <View style={styles.bannerDetail}>
+                <MaterialCommunityIcons name="map-marker-outline" size={12} color="#6B7280" />
+                <Text style={[styles.bannerDetailText, styles.bannerDetailTextSecondary]}>Main Entrance</Text>
+              </View>
+            </View>
+          </View>
+          <Text style={styles.bannerPrice}>
             ${orderType === 'dining' ? '6' : '10'}
-          </div>
-        </div>
-      </div>
+          </Text>
+        </View>
+      </View>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50">
-        <div className="space-y-4">
-          {/* Date Separator */}
-          <div className="flex items-center justify-center">
-            <div className="px-3 py-1 rounded-full" style={{ background: '#E5E7EB' }}>
-              <span style={{ fontSize: '12px', fontWeight: '500', color: '#6B7280' }}>
-                Today
-              </span>
-            </div>
-          </div>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+      >
+        {/* Date Separator */}
+        <View style={styles.dateSeparator}>
+          <View style={styles.dateBadge}>
+            <Text style={styles.dateText}>Today</Text>
+          </View>
+        </View>
 
-          {/* Messages */}
-          {messages.map((message) => (
-            <div 
-              key={message.id}
-              className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+        {/* Messages */}
+        {messages.map((message) => (
+          <View 
+            key={message.id}
+            style={[
+              styles.messageWrapper,
+              message.sender === 'me' ? styles.messageWrapperRight : styles.messageWrapperLeft
+            ]}
+          >
+            <View 
+              style={[
+                styles.messageBubble,
+                message.sender === 'me' ? styles.messageBubbleMe : styles.messageBubbleThem
+              ]}
             >
-              <div 
-                className={`max-w-[75%] ${message.sender === 'me' ? 'order-2' : 'order-1'}`}
-              >
-                <div 
-                  className="px-4 py-3 rounded-2xl"
-                  style={{
-                    background: message.sender === 'me' ? '#003262' : '#FFFFFF',
-                    color: message.sender === 'me' ? '#FFFFFF' : '#111827',
-                    borderBottomRightRadius: message.sender === 'me' ? '4px' : '16px',
-                    borderBottomLeftRadius: message.sender === 'them' ? '4px' : '16px',
-                    boxShadow: message.sender === 'them' ? '0 1px 2px rgba(0, 0, 0, 0.1)' : 'none'
-                  }}
-                >
-                  <p style={{ fontSize: '15px', lineHeight: '1.5' }}>
-                    {message.text}
-                  </p>
-                </div>
-                <p 
-                  className={`mt-1 ${message.sender === 'me' ? 'text-right' : 'text-left'}`}
-                  style={{ fontSize: '11px', color: '#9CA3AF' }}
-                >
-                  {message.time}
-                </p>
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
+              <Text style={[
+                styles.messageText,
+                message.sender === 'me' ? styles.messageTextMe : styles.messageTextThem
+              ]}>
+                {message.text}
+              </Text>
+            </View>
+            <Text style={[
+              styles.messageTime,
+              message.sender === 'me' ? styles.messageTimeRight : styles.messageTimeLeft
+            ]}>
+              {message.time}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
 
       {/* Quick Replies */}
-      <div className="px-6 py-3 border-t border-gray-200 bg-white">
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {quickReplies.map((reply, index) => (
-            <button
-              key={index}
-              onClick={() => setInputText(reply)}
-              className="px-4 py-2 rounded-full whitespace-nowrap border"
-              style={{ 
-                borderColor: '#E5E7EB',
-                background: '#F9FAFB',
-                fontSize: '13px',
-                fontWeight: '500',
-                color: '#374151'
-              }}
-            >
-              {reply}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickRepliesContainer}
+        contentContainerStyle={styles.quickRepliesContent}
+      >
+        {quickReplies.map((reply, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => setInputText(reply)}
+            style={styles.quickReplyButton}
+          >
+            <Text style={styles.quickReplyText}>{reply}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       {/* Input Area */}
-      <div className="px-6 py-4 border-t border-gray-200 bg-white">
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              rows={1}
-              className="w-full px-4 py-3 rounded-2xl border border-gray-200 resize-none"
-              style={{ 
-                fontSize: '15px',
-                maxHeight: '100px',
-                outline: 'none'
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = Math.min(target.scrollHeight, 100) + 'px';
-              }}
-            />
-          </div>
-          <button
-            onClick={handleSend}
+      <View style={styles.inputContainer}>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Type a message..."
+            placeholderTextColor="#9CA3AF"
+            style={styles.textInput}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            onPress={handleSend}
             disabled={!inputText.trim()}
-            className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all disabled:opacity-50"
-            style={{ 
-              background: inputText.trim() 
-                ? 'linear-gradient(135deg, #003262 0%, #004d8b 100%)'
-                : '#D1D5DB'
-            }}
+            style={[
+              styles.sendButton,
+              !inputText.trim() && styles.sendButtonDisabled
+            ]}
           >
-            <Send className="w-5 h-5 text-white" />
-          </button>
-        </div>
-      </div>
-    </div>
+            <MaterialCommunityIcons 
+              name="send" 
+              size={20} 
+              color={inputText.trim() ? "#FFFFFF" : "#9CA3AF"} 
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#003262',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  onlineIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  onlineText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  infoButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  banner: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#DBEAFE',
+    borderBottomWidth: 1,
+    borderBottomColor: '#BFDBFE',
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bannerInfo: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#003262',
+    marginBottom: 4,
+  },
+  bannerDetails: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bannerDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  bannerDetailText: {
+    fontSize: 11,
+    color: '#111827',
+  },
+  bannerDetailTextSecondary: {
+    color: '#6B7280',
+  },
+  bannerPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#003262',
+  },
+  messagesContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  messagesContent: {
+    padding: 24,
+    gap: 16,
+  },
+  dateSeparator: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dateBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+  },
+  dateText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  messageWrapper: {
+    marginBottom: 8,
+  },
+  messageWrapperLeft: {
+    alignItems: 'flex-start',
+  },
+  messageWrapperRight: {
+    alignItems: 'flex-end',
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  messageBubbleMe: {
+    backgroundColor: '#003262',
+    borderBottomRightRadius: 4,
+  },
+  messageBubbleThem: {
+    backgroundColor: '#FFFFFF',
+    borderBottomLeftRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  messageTextMe: {
+    color: '#FFFFFF',
+  },
+  messageTextThem: {
+    color: '#111827',
+  },
+  messageTime: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
+  messageTimeLeft: {
+    textAlign: 'left',
+  },
+  messageTimeRight: {
+    textAlign: 'right',
+  },
+  quickRepliesContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  quickRepliesContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  quickReplyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  quickReplyText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  inputContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  textInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    fontSize: 15,
+    maxHeight: 100,
+    color: '#111827',
+  },
+  sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#003262',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+});

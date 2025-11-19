@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { ArrowLeft, Star } from 'lucide-react';
-import { Button } from './ui/button';
-import { Textarea } from './ui/textarea';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Screen } from '../App';
 
 interface RatingScreenProps {
@@ -10,137 +9,54 @@ interface RatingScreenProps {
 
 export function RatingScreen({ onNavigate }: RatingScreenProps) {
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="px-6 pt-12 pb-6" style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => onNavigate('orders-buyer')}
-            className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5 text-white" />
-          </button>
-          <h1 className="text-white flex-1" style={{ fontSize: '24px', fontWeight: '700' }}>
-            Rate Experience
-          </h1>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {/* Seller Info */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ background: '#FDB515' }}>
-            <span className="text-white" style={{ fontSize: '36px', fontWeight: '600' }}>
-              EW
-            </span>
-          </div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-            Emma W.
-          </h2>
-          <p style={{ fontSize: '14px', color: '#6B7280', marginTop: '4px' }}>
-            Brown's Cafe • Grubhub Order
-          </p>
-        </div>
-
-        {/* Rating Section */}
-        <div className="mb-8">
-          <h3 className="text-center mb-4" style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-            How was your experience?
-          </h3>
-          
-          <div className="flex items-center justify-center gap-3 mb-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                className="transition-transform hover:scale-110"
-              >
-                <Star
-                  className="w-12 h-12 fill-current transition-colors"
-                  style={{
-                    color: star <= (hoverRating || rating) ? '#FDB515' : '#E5E7EB'
-                  }}
-                />
-              </button>
-            ))}
-          </div>
-
-          <p className="text-center" style={{ fontSize: '14px', color: '#6B7280' }}>
-            {rating === 0 && 'Tap to rate'}
-            {rating === 1 && 'Poor'}
-            {rating === 2 && 'Fair'}
-            {rating === 3 && 'Good'}
-            {rating === 4 && 'Very Good'}
-            {rating === 5 && 'Excellent'}
-          </p>
-        </div>
-
-        {/* Comment Section */}
-        <div className="mb-6">
-          <label className="block mb-2" style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-            Add a comment (optional)
-          </label>
-          <Textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className="min-h-32 rounded-xl border-gray-200 resize-none"
-            placeholder="Share details of your experience..."
-            style={{ fontSize: '16px' }}
-          />
-          <p className="mt-2 text-gray-500" style={{ fontSize: '12px' }}>
-            Your feedback helps the community
-          </p>
-        </div>
-
-        {/* Quick Tags */}
-        <div className="mb-8">
-          <p className="mb-3" style={{ fontSize: '14px', fontWeight: '600', color: '#6B7280' }}>
-            Quick tags (optional)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {['On time', 'Friendly', 'Great communication', 'Easy meetup', 'Would buy again'].map((tag) => (
-              <button
-                key={tag}
-                className="px-4 py-2 rounded-full border-2 transition-all"
-                style={{
-                  borderColor: '#E5E7EB',
-                  background: '#FFFFFF',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: '#6B7280'
-                }}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Action */}
-      <div className="p-6 border-t border-gray-200">
-        <Button
-          onClick={() => onNavigate('orders-buyer')}
-          disabled={rating === 0}
-          className="w-full h-14 rounded-2xl text-white shadow-lg disabled:opacity-50"
-          style={{ 
-            background: rating === 0 
-              ? '#9CA3AF' 
-              : 'linear-gradient(135deg, #003262 0%, #004d8b 100%)',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}
-        >
-          Submit Rating
-        </Button>
-      </div>
-    </div>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => onNavigate('orders-buyer')} style={styles.backButton}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Rate Your Experience</Text>
+      </View>
+      <ScrollView style={styles.content}>
+        <Text style={styles.title}>How was your experience?</Text>
+        <View style={styles.starsContainer}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity key={star} onPress={() => setRating(star)}>
+              <MaterialCommunityIcons
+                name={star <= rating ? 'star' : 'star-outline'}
+                size={40}
+                color="#FDB515"
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Add a comment (optional)"
+          value={comment}
+          onChangeText={setComment}
+          multiline
+          numberOfLines={4}
+        />
+        <TouchableOpacity style={styles.submitButton} onPress={() => onNavigate('orders-buyer')}>
+          <Text style={styles.submitButtonText}>Submit Rating</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 24, backgroundColor: '#003262', flexDirection: 'row', alignItems: 'center', gap: 16 },
+  backButton: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
+  content: { flex: 1, padding: 24 },
+  title: { fontSize: 20, fontWeight: '600', marginBottom: 24 },
+  starsContainer: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 32 },
+  textInput: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 16, minHeight: 100, marginBottom: 24, textAlignVertical: 'top' },
+  submitButton: { backgroundColor: '#003262', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+});

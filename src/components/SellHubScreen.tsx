@@ -1,5 +1,7 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
-import { PlusCircle, Search, TrendingUp } from 'lucide-react';
 import type { Screen } from '../App';
 
 interface SellHubScreenProps {
@@ -9,147 +11,305 @@ interface SellHubScreenProps {
 }
 
 export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScreenProps) {
+  const tips = [
+    'Be flexible with timing to attract more buyers',
+    'Respond quickly to messages and requests',
+    'Clear meeting instructions increase success rate',
+    'Higher ratings = more buyer interest'
+  ];
+
   return (
-    <div className="h-full flex flex-col bg-white">
+    <View style={styles.container}>
       {/* Header */}
-      <div className="px-6 pt-12 pb-6" style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}>
-        <h1 className="text-white mb-2" style={{ fontSize: '32px', fontWeight: '700' }}>
-          Sell
-        </h1>
-        <p className="text-white/80" style={{ fontSize: '14px' }}>
-          Choose how you want to sell your swipes
-        </p>
-      </div>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Sell</Text>
+        <Text style={styles.headerSubtitle}>Choose how you want to sell your swipes</Text>
+      </View>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-4">
-          {/* Create Your Own Offer */}
-          <button
-            onClick={() => onNavigate('create-dining')}
-            className="w-full bg-white rounded-3xl p-6 border-2 shadow-lg transition-all hover:shadow-xl"
-            style={{ borderColor: '#003262' }}
-          >
-            <div className="flex items-start gap-4">
-              <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}
-              >
-                <PlusCircle className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="mb-1" style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>
-                  Create Your Own Offer
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: '1.5' }}>
-                  Post your available swipes with your own schedule and pricing. Buyers will come to you.
-                </p>
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="flex-1">
-                    <div className="px-3 py-1.5 rounded-lg text-center" style={{ background: '#DBEAFE' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#1E3A8A' }}>
-                        Dining Hall
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="px-3 py-1.5 rounded-lg text-center" style={{ background: '#FEF3C7' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '600', color: '#92400E' }}>
-                        Grubhub
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Create Your Own Offer */}
+        <TouchableOpacity
+          onPress={() => onNavigate('create-dining')}
+          style={[styles.card, styles.diningCard]}
+        >
+          <View style={styles.cardContent}>
+            <View style={[styles.iconContainer, styles.diningIcon]}>
+              <MaterialCommunityIcons name="plus-circle" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.cardTitle}>Create Your Own Offer</Text>
+              <Text style={styles.cardDescription}>
+                Post your available swipes with your own schedule and pricing. Buyers will come to you.
+              </Text>
+              <View style={styles.badgeContainer}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Dining Hall</Text>
+                </View>
+                <View style={[styles.badge, styles.grubhubBadge]}>
+                  <Text style={styles.grubhubBadgeText}>Grubhub</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
 
-          {/* Browse Buyer Requests */}
-          <button
-            onClick={() => onNavigate('buyer-requests')}
-            className="w-full bg-white rounded-3xl p-6 border-2 shadow-lg transition-all hover:shadow-xl"
-            style={{ borderColor: '#FDB515' }}
-          >
-            <div className="flex items-start gap-4">
-              <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #FDB515 0%, #f4a700 100%)' }}
-              >
-                <Search className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>
-                    Browse Buyer Requests
-                  </h3>
-                  <div 
-                    className="px-2 py-0.5 rounded-full"
-                    style={{ background: '#FEE2E2' }}
-                  >
-                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#DC2626' }}>
-                      NEW
-                    </span>
-                  </div>
-                </div>
-                <p style={{ fontSize: '14px', color: '#6B7280', lineHeight: '1.5' }}>
-                  See requests from buyers looking for swipes. Accept the ones that fit your schedule.
-                </p>
-                <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg" style={{ background: '#FEF3C7' }}>
-                  <TrendingUp className="w-4 h-4" style={{ color: '#92400E' }} />
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#92400E' }}>
-                    6 active requests right now
-                  </span>
-                </div>
-              </div>
-            </div>
-          </button>
+        {/* Browse Buyer Requests */}
+        <TouchableOpacity
+          onPress={() => onNavigate('buyer-requests')}
+          style={[styles.card, styles.grubhubCardBorder]}
+        >
+          <View style={styles.cardContent}>
+            <View style={[styles.iconContainer, styles.grubhubIcon]}>
+              <MaterialCommunityIcons name="magnify" size={28} color="#FFFFFF" />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <View style={styles.titleRow}>
+                <Text style={styles.cardTitle}>Browse Buyer Requests</Text>
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>NEW</Text>
+                </View>
+              </View>
+              <Text style={styles.cardDescription}>
+                See requests from buyers looking for swipes. Accept the ones that fit your schedule.
+              </Text>
+              <View style={styles.trendingContainer}>
+                <MaterialCommunityIcons name="trending-up" size={16} color="#92400E" />
+                <Text style={styles.trendingText}>6 active requests right now</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
 
-          {/* Info Cards */}
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-blue-50 rounded-2xl p-4">
-              <div style={{ fontSize: '28px', fontWeight: '700', color: '#003262', marginBottom: '4px' }}>
-                $5-8
-              </div>
-              <p style={{ fontSize: '12px', color: '#1E40AF' }}>
-                Avg dining hall price
-              </p>
-            </div>
-            <div className="bg-yellow-50 rounded-2xl p-4">
-              <div style={{ fontSize: '28px', fontWeight: '700', color: '#FDB515', marginBottom: '4px' }}>
-                $8-15
-              </div>
-              <p style={{ fontSize: '12px', color: '#92400E' }}>
-                Avg Grubhub price
-              </p>
-            </div>
-          </div>
+        {/* Info Cards */}
+        <View style={styles.infoCardsContainer}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardPrice}>$5-8</Text>
+            <Text style={styles.infoCardLabel}>Avg dining hall price</Text>
+          </View>
+          <View style={[styles.infoCard, styles.grubhubInfoCard]}>
+            <Text style={[styles.infoCardPrice, styles.grubhubPrice]}>$8-15</Text>
+            <Text style={styles.grubhubInfoCardLabel}>Avg Grubhub price</Text>
+          </View>
+        </View>
 
-          {/* Tips Section */}
-          <div className="mt-6 p-5 rounded-2xl" style={{ background: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-            <h4 className="mb-3" style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-              Tips for Selling
-            </h4>
-            <div className="space-y-2">
-              {[
-                'Be flexible with timing to attract more buyers',
-                'Respond quickly to messages and requests',
-                'Clear meeting instructions increase success rate',
-                'Higher ratings = more buyer interest'
-              ].map((tip, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full mt-2" style={{ background: '#FDB515' }}></div>
-                  <p style={{ fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
-                    {tip}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Tips Section */}
+        <View style={styles.tipsContainer}>
+          <Text style={styles.tipsTitle}>Tips for Selling</Text>
+          <View style={styles.tipsList}>
+            {tips.map((tip, index) => (
+              <View key={index} style={styles.tipItem}>
+                <View style={styles.tipDot} />
+                <Text style={styles.tipText}>{tip}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
 
       {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={onTabChange} />
-    </div>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 24,
+    backgroundColor: '#003262',
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 24,
+    gap: 16,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  diningCard: {
+    borderColor: '#003262',
+  },
+  grubhubCardBorder: {
+    borderColor: '#FDB515',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  diningIcon: {
+    backgroundColor: '#003262',
+  },
+  grubhubIcon: {
+    backgroundColor: '#FDB515',
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  newBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginTop: 4,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 16,
+  },
+  badge: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E3A8A',
+  },
+  grubhubBadge: {
+    backgroundColor: '#FEF3C7',
+  },
+  grubhubBadgeText: {
+    color: '#92400E',
+  },
+  trendingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+  },
+  trendingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  infoCardsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 16,
+    padding: 16,
+  },
+  grubhubInfoCard: {
+    backgroundColor: '#FEF3C7',
+  },
+  infoCardPrice: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#003262',
+    marginBottom: 4,
+  },
+  grubhubPrice: {
+    color: '#FDB515',
+  },
+  infoCardLabel: {
+    fontSize: 12,
+    color: '#1E40AF',
+  },
+  grubhubInfoCardLabel: {
+    color: '#92400E',
+  },
+  tipsContainer: {
+    marginTop: 24,
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  tipsList: {
+    gap: 8,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  tipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FDB515',
+    marginTop: 8,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 20,
+  },
+});

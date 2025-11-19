@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
-import { Upload, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
-import { Button } from './ui/button';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Screen } from '../App';
 
 interface IDVerificationScreenProps {
@@ -9,188 +10,201 @@ interface IDVerificationScreenProps {
 
 export function IDVerificationScreen({ onComplete }: IDVerificationScreenProps) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'We need camera roll permissions to upload your ID');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUploadedImage(result.assets[0].uri);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadedImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleSubmit = () => {
+    if (!uploadedImage) {
+      Alert.alert('No image', 'Please upload your ID image first');
+      return;
     }
+    onComplete();
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <View style={styles.container}>
       {/* Header */}
-      <div className="px-6 pt-12 pb-6" style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}>
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-            <Camera className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-white mb-2" style={{ fontSize: '28px', fontWeight: '700' }}>
-            Verify Your Identity
-          </h1>
-          <p className="text-white/80" style={{ fontSize: '14px', lineHeight: '1.5' }}>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.iconCircle}>
+            <MaterialCommunityIcons name="camera" size={32} color="#FFFFFF" />
+          </View>
+          <Text style={styles.headerTitle}>Verify Your Identity</Text>
+          <Text style={styles.headerSubtitle}>
             Upload your Cal 1 Card or student ID to verify you're a Berkeley student
-          </p>
-        </div>
-      </div>
+          </Text>
+        </View>
+      </View>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {/* Upload Area */}
-        <div className="mb-6">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          
-          {!uploadedImage ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className="border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all"
-              style={{
-                borderColor: isDragging ? '#003262' : '#D1D5DB',
-                background: isDragging ? '#F0F9FF' : '#F9FAFB'
-              }}
+      <View style={styles.content}>
+        {!uploadedImage ? (
+          <TouchableOpacity
+            onPress={pickImage}
+            style={styles.uploadArea}
+          >
+            <MaterialCommunityIcons name="cloud-upload-outline" size={48} color="#003262" />
+            <Text style={styles.uploadText}>Tap to upload your ID</Text>
+            <Text style={styles.uploadSubtext}>JPG, PNG up to 5MB</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: uploadedImage }} style={styles.uploadedImage} />
+            <TouchableOpacity
+              onPress={pickImage}
+              style={styles.changeButton}
             >
-              <Upload 
-                className="w-12 h-12 mx-auto mb-4" 
-                style={{ color: isDragging ? '#003262' : '#9CA3AF' }} 
-              />
-              <p style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-                Upload Student ID
-              </p>
-              <p style={{ fontSize: '14px', color: '#6B7280', marginBottom: '16px' }}>
-                Click to browse or drag and drop
-              </p>
-              <p style={{ fontSize: '12px', color: '#9CA3AF' }}>
-                PNG, JPG up to 10MB
-              </p>
-            </div>
-          ) : (
-            <div className="relative rounded-2xl overflow-hidden border-2" style={{ borderColor: '#059669' }}>
-              <img 
-                src={uploadedImage} 
-                alt="Uploaded ID" 
-                className="w-full h-64 object-cover"
-              />
-              <div className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6" style={{ color: '#059669' }} />
-              </div>
-              <button
-                onClick={() => setUploadedImage(null)}
-                className="absolute bottom-3 right-3 px-4 py-2 rounded-xl bg-white shadow-lg"
-                style={{ fontSize: '14px', fontWeight: '600', color: '#DC2626' }}
-              >
-                Remove
-              </button>
-            </div>
-          )}
-        </div>
+              <Text style={styles.changeButtonText}>Change Image</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-        {/* Info Cards */}
-        <div className="space-y-3 mb-6">
-          <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: '#DBEAFE' }}>
-            <AlertCircle className="w-5 h-5 mt-0.5" style={{ color: '#1E40AF' }} />
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: '600', color: '#1E40AF', marginBottom: '4px' }}>
-                Why we need this
-              </p>
-              <p style={{ fontSize: '13px', color: '#1E3A8A', lineHeight: '1.5' }}>
-                ID verification ensures only UC Berkeley students can use the marketplace and helps maintain trust in our community.
-              </p>
-            </div>
-          </div>
+        <View style={styles.infoBox}>
+          <MaterialCommunityIcons name="information-outline" size={20} color="#003262" />
+          <Text style={styles.infoText}>
+            Your ID will be verified within 24 hours. You can start using the app once verified.
+          </Text>
+        </View>
 
-          <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: '#DCFCE7' }}>
-            <CheckCircle2 className="w-5 h-5 mt-0.5" style={{ color: '#166534' }} />
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: '600', color: '#166534', marginBottom: '4px' }}>
-                Your privacy matters
-              </p>
-              <p style={{ fontSize: '13px', color: '#14532D', lineHeight: '1.5' }}>
-                Your ID is encrypted and only used for verification. We never share your personal information.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Guidelines */}
-        <div className="mb-6">
-          <h3 className="mb-3" style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-            Photo Guidelines
-          </h3>
-          <div className="space-y-2">
-            {[
-              'Make sure your full ID is visible',
-              'Photo should be clear and well-lit',
-              'Avoid glare or shadows',
-              'ID must be valid and not expired'
-            ].map((guideline, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#FDB515' }}></div>
-                <p style={{ fontSize: '14px', color: '#6B7280' }}>
-                  {guideline}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Action */}
-      <div className="p-6 border-t border-gray-200">
-        <Button
-          onClick={onComplete}
+        <TouchableOpacity
+          onPress={handleSubmit}
+          style={[styles.submitButton, !uploadedImage && styles.submitButtonDisabled]}
           disabled={!uploadedImage}
-          className="w-full h-14 rounded-2xl text-white shadow-lg disabled:opacity-50"
-          style={{ 
-            background: uploadedImage 
-              ? 'linear-gradient(135deg, #003262 0%, #004d8b 100%)'
-              : '#9CA3AF',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}
         >
-          Continue
-        </Button>
-        <p className="text-center mt-3" style={{ fontSize: '12px', color: '#9CA3AF' }}>
-          This usually takes 1-2 minutes to verify
-        </p>
-      </div>
-    </div>
+          <Text style={styles.submitButtonText}>Submit for Verification</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 24,
+    backgroundColor: '#003262',
+  },
+  headerContent: {
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+  },
+  uploadArea: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#003262',
+    borderRadius: 16,
+    padding: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    backgroundColor: '#F9FAFB',
+  },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#003262',
+    marginTop: 16,
+  },
+  uploadSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  imageContainer: {
+    marginBottom: 24,
+  },
+  uploadedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  changeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#003262',
+    alignItems: 'center',
+  },
+  changeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#003262',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 12,
+    marginBottom: 24,
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E3A8A',
+    lineHeight: 20,
+  },
+  submitButton: {
+    backgroundColor: '#003262',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

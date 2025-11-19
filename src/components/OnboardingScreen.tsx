@@ -1,5 +1,6 @@
-import { Button } from './ui/button';
-import { UtensilsCrossed, GraduationCap } from 'lucide-react';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface OnboardingScreenProps {
   onGetStarted: () => void;
@@ -7,64 +8,185 @@ interface OnboardingScreenProps {
 
 export function OnboardingScreen({ onGetStarted }: OnboardingScreenProps) {
   return (
-    <div className="h-full flex flex-col" style={{ background: 'linear-gradient(135deg, #003262 0%, #003262 50%, #FDB515 100%)' }}>
+    <View style={styles.container}>
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 pb-12">
+      <View style={styles.content}>
         {/* Logo/Icon */}
-        <div className="relative mb-12">
-          <div className="w-32 h-32 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-            <GraduationCap className="w-16 h-16 text-white" strokeWidth={1.5} />
-          </div>
-          <div className="absolute -bottom-2 -right-2 w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg">
-            <UtensilsCrossed className="w-8 h-8" style={{ color: '#003262' }} />
-          </div>
-        </div>
+        <View style={styles.logoContainer}>
+          <View style={styles.logoCircle}>
+            <MaterialCommunityIcons name="school" size={64} color="#FFFFFF" />
+          </View>
+          <View style={styles.iconCircle}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={32} color="#003262" />
+          </View>
+        </View>
 
         {/* Title */}
-        <h1 className="text-white text-center mb-4" style={{ fontSize: '32px', fontWeight: '700', letterSpacing: '-0.5px' }}>
-          Cal Meal Share
-        </h1>
+        <Text style={styles.title}>Cal Meal Share</Text>
         
-        <p className="text-white/90 text-center mb-2" style={{ fontSize: '18px' }}>
-          Buy & Sell Meal Swipes
-        </p>
+        <Text style={styles.subtitle}>Buy & Sell Meal Swipes</Text>
         
-        <p className="text-white/70 text-center mb-12" style={{ fontSize: '14px', maxWidth: '280px' }}>
+        <Text style={styles.description}>
           The marketplace for UC Berkeley students to trade dining hall swipes and Grubhub orders
-        </p>
+        </Text>
 
         {/* Illustration */}
-        <div className="flex items-center justify-center gap-6 mb-16">
-          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <UtensilsCrossed className="w-10 h-10 text-white" strokeWidth={1.5} />
-          </div>
-          <div className="w-2 h-2 rounded-full bg-white/50"></div>
-          <div className="w-2 h-2 rounded-full bg-white/50"></div>
-          <div className="w-2 h-2 rounded-full bg-white/50"></div>
-          <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-lg">
-            <span style={{ fontSize: '36px' }}>🍔</span>
-          </div>
-        </div>
-      </div>
+        <View style={styles.illustration}>
+          <View style={styles.illustrationBox}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={40} color="#FFFFFF" />
+          </View>
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+          <View style={styles.dot} />
+          <View style={styles.illustrationBoxWhite}>
+            <Text style={styles.emoji}>🍔</Text>
+          </View>
+        </View>
+      </View>
 
       {/* Bottom Section */}
-      <div className="p-8 bg-white rounded-t-3xl">
-        <Button 
-          onClick={onGetStarted}
-          className="w-full h-14 rounded-2xl text-white shadow-lg"
-          style={{ 
-            background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}
+      <View style={styles.bottomSection}>
+        <TouchableOpacity
+          onPress={onGetStarted}
+          style={styles.button}
         >
-          Sign in with Berkeley Email
-        </Button>
+          <Text style={styles.buttonText}>Sign in with Berkeley Email</Text>
+        </TouchableOpacity>
         
-        <p className="text-center mt-4 text-gray-500" style={{ fontSize: '12px' }}>
+        <Text style={styles.footerText}>
           @berkeley.edu email required
-        </p>
-      </div>
-    </div>
+        </Text>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#003262',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 48,
+  },
+  logoContainer: {
+    position: 'relative',
+    marginBottom: 48,
+  },
+  logoCircle: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconCircle: {
+    position: 'absolute',
+    bottom: -8,
+    right: -8,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 48,
+    maxWidth: 280,
+  },
+  illustration: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+    marginBottom: 64,
+  },
+  illustrationBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  illustrationBoxWhite: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  emoji: {
+    fontSize: 36,
+  },
+  bottomSection: {
+    padding: 32,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  button: {
+    width: '100%',
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#003262',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footerText: {
+    textAlign: 'center',
+    marginTop: 16,
+    color: '#6B7280',
+    fontSize: 12,
+  },
+});

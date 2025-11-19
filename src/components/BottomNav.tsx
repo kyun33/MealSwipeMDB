@@ -1,4 +1,6 @@
-import { ShoppingBag, PlusCircle, Receipt, User } from 'lucide-react';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface BottomNavProps {
   activeTab: 'buy' | 'sell' | 'orders' | 'profile';
@@ -7,42 +9,64 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
-    { id: 'buy' as const, icon: ShoppingBag, label: 'Buy' },
-    { id: 'sell' as const, icon: PlusCircle, label: 'Sell' },
-    { id: 'orders' as const, icon: Receipt, label: 'Orders' },
-    { id: 'profile' as const, icon: User, label: 'Profile' },
+    { id: 'buy' as const, icon: 'shopping' as const, label: 'Buy' },
+    { id: 'sell' as const, icon: 'plus-circle' as const, label: 'Sell' },
+    { id: 'orders' as const, icon: 'receipt' as const, label: 'Orders' },
+    { id: 'profile' as const, icon: 'account' as const, label: 'Profile' },
   ];
 
   return (
-    <div className="border-t border-gray-200 bg-white px-4 py-2">
-      <div className="flex items-center justify-around">
+    <View style={styles.container}>
+      <View style={styles.tabsContainer}>
         {tabs.map((tab) => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           
           return (
-            <button
+            <TouchableOpacity
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className="flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-all"
-              style={{
-                color: isActive ? '#003262' : '#9CA3AF',
-              }}
+              onPress={() => onTabChange(tab.id)}
+              style={styles.tab}
             >
-              <Icon 
-                className="w-6 h-6" 
-                strokeWidth={isActive ? 2.5 : 2}
+              <MaterialCommunityIcons
+                name={tab.icon}
+                size={24}
+                color={isActive ? '#003262' : '#9CA3AF'}
               />
-              <span style={{ 
-                fontSize: '11px',
-                fontWeight: isActive ? '600' : '500'
-              }}>
+              <Text style={[
+                styles.tabLabel,
+                { color: isActive ? '#003262' : '#9CA3AF', fontWeight: isActive ? '600' : '500' }
+              ]}>
                 {tab.label}
-              </span>
-            </button>
+              </Text>
+            </TouchableOpacity>
           );
         })}
-      </div>
-    </div>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  tab: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  tabLabel: {
+    fontSize: 11,
+  },
+});

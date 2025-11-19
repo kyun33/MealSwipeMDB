@@ -1,6 +1,7 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
-import { Star, Clock, MapPin, ChevronRight, PlusCircle } from 'lucide-react';
-import { Button } from './ui/button';
 import type { Screen } from '../App';
 
 interface HomeScreenProps {
@@ -76,161 +77,293 @@ const grubhubListings = [
 
 export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenProps) {
   return (
-    <div className="h-full flex flex-col bg-white">
+    <View style={styles.container}>
       {/* Header */}
-      <div className="px-6 pt-12 pb-6" style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}>
-        <h1 className="text-white mb-2" style={{ fontSize: '32px', fontWeight: '700' }}>
-          Buy Swipes
-        </h1>
-        <p className="text-white/80" style={{ fontSize: '14px' }}>
-          Find meal swipes from other Cal students
-        </p>
-      </div>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Buy Swipes</Text>
+        <Text style={styles.headerSubtitle}>Find meal swipes from other Cal students</Text>
+      </View>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Post Your Request CTA */}
-        <div className="px-6 pt-6 pb-4">
-          <button
-            onClick={() => onNavigate('create-buyer-request')}
-            className="w-full rounded-2xl p-4 border-2 border-dashed flex items-center gap-3 transition-all hover:bg-gray-50"
-            style={{ borderColor: '#003262' }}
+        <View style={styles.ctaContainer}>
+          <TouchableOpacity
+            onPress={() => onNavigate('create-buyer-request')}
+            style={styles.ctaButton}
           >
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: '#003262' }}
-            >
-              <PlusCircle className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1 text-left">
-              <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#003262', marginBottom: '2px' }}>
-                Can't find what you need?
-              </h4>
-              <p style={{ fontSize: '13px', color: '#6B7280' }}>
-                Post your request and let sellers come to you
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5" style={{ color: '#003262' }} />
-          </button>
-        </div>
+            <View style={styles.ctaIconContainer}>
+              <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.ctaTextContainer}>
+              <Text style={styles.ctaTitle}>Can't find what you need?</Text>
+              <Text style={styles.ctaSubtitle}>Post your request and let sellers come to you</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#003262" />
+          </TouchableOpacity>
+        </View>
 
         {/* Dining Hall Swipes Section */}
-        <div className="px-6 py-4">
-          <h2 className="mb-4" style={{ fontSize: '20px', fontWeight: '600', color: '#1F2937' }}>
-            Dining Hall Swipe-ins
-          </h2>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Dining Hall Swipe-ins</Text>
           
-          <div className="space-y-3">
+          <View style={styles.listingsContainer}>
             {diningHallListings.map((listing) => (
-              <div
+              <TouchableOpacity
                 key={listing.id}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => onNavigate('order-details-dining')}
+                style={styles.listingCard}
+                onPress={() => onNavigate('order-details-dining')}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                      {listing.name}
-                    </h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-4 h-4 fill-current" style={{ color: '#FDB515' }} />
-                      <span style={{ fontSize: '14px', color: '#6B7280' }}>
-                        {listing.rating}
-                      </span>
-                      <span style={{ fontSize: '14px', color: '#9CA3AF' }}>
-                        • {listing.sellerName}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#003262' }}>
-                      ${listing.price}
-                    </div>
-                  </div>
-                </div>
+                <View style={styles.listingHeader}>
+                  <View style={styles.listingInfo}>
+                    <Text style={styles.listingName}>{listing.name}</Text>
+                    <View style={styles.ratingContainer}>
+                      <MaterialCommunityIcons name="star" size={16} color="#FDB515" />
+                      <Text style={styles.ratingText}>{listing.rating}</Text>
+                      <Text style={styles.sellerText}> • {listing.sellerName}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.price}>${listing.price}</Text>
+                  </View>
+                </View>
 
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4" style={{ color: '#111827' }} />
-                  <span style={{ fontSize: '14px', color: '#111827' }}>
-                    {listing.timeWindow}
-                  </span>
-                </div>
+                <View style={styles.timeContainer}>
+                  <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
+                  <Text style={styles.timeText}>{listing.timeWindow}</Text>
+                </View>
 
-                <Button
-                  className="w-full h-11 rounded-xl text-white"
-                  style={{ background: '#003262', fontSize: '15px', fontWeight: '600' }}
+                <TouchableOpacity
+                  style={[styles.requestButton, styles.diningButton]}
+                  onPress={() => {}}
                 >
-                  Request Swipe
-                </Button>
-              </div>
+                  <Text style={styles.requestButtonText}>Request Swipe</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
             ))}
-          </div>
-        </div>
+          </View>
+        </View>
 
         {/* Grubhub Orders Section */}
-        <div className="px-6 py-4 bg-white">
-          <h2 className="mb-4" style={{ fontSize: '20px', fontWeight: '600', color: '#1F2937' }}>
-            Grubhub Orders
-          </h2>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Grubhub Orders</Text>
           
-          <div className="space-y-3">
+          <View style={styles.listingsContainer}>
             {grubhubListings.map((listing) => (
-              <div
+              <TouchableOpacity
                 key={listing.id}
-                className="bg-gray-50 rounded-2xl p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={() => onNavigate('order-details-grubhub')}
+                style={[styles.listingCard, styles.grubhubCard]}
+                onPress={() => onNavigate('order-details-grubhub')}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-                      {listing.restaurant}
-                    </h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-4 h-4 fill-current" style={{ color: '#FDB515' }} />
-                      <span style={{ fontSize: '14px', color: '#6B7280' }}>
-                        {listing.rating}
-                      </span>
-                      <span style={{ fontSize: '14px', color: '#9CA3AF' }}>
-                        • {listing.sellerName}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#003262' }}>
-                      ${listing.price}
-                    </div>
-                  </div>
-                </div>
+                <View style={styles.listingHeader}>
+                  <View style={[styles.listingInfo, styles.flex1]}>
+                    <Text style={styles.listingName}>{listing.restaurant}</Text>
+                    <View style={styles.ratingContainer}>
+                      <MaterialCommunityIcons name="star" size={16} color="#FDB515" />
+                      <Text style={styles.ratingText}>{listing.rating}</Text>
+                      <Text style={styles.sellerText}> • {listing.sellerName}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.price}>${listing.price}</Text>
+                  </View>
+                </View>
 
-                <div className="space-y-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" style={{ color: '#6B7280' }} />
-                    <span style={{ fontSize: '14px', color: '#6B7280' }}>
-                      {listing.location}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" style={{ color: '#111827' }} />
-                    <span style={{ fontSize: '14px', color: '#111827' }}>
-                      Pickup: {listing.pickupTime}
-                    </span>
-                  </div>
-                </div>
+                <View style={styles.detailsContainer}>
+                  <View style={styles.detailRow}>
+                    <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6B7280" />
+                    <Text style={styles.detailText}>{listing.location}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
+                    <Text style={styles.detailText}>Pickup: {listing.pickupTime}</Text>
+                  </View>
+                </View>
 
-                <Button
-                  className="w-full h-11 rounded-xl text-white"
-                  style={{ background: '#FDB515', fontSize: '15px', fontWeight: '600' }}
+                <TouchableOpacity
+                  style={[styles.requestButton, styles.grubhubButton]}
+                  onPress={() => {}}
                 >
-                  Request Order
-                </Button>
-              </div>
+                  <Text style={styles.requestButtonText}>Request Order</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
             ))}
-          </div>
-        </div>
-      </div>
+          </View>
+        </View>
+      </ScrollView>
 
       {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={onTabChange} />
-    </div>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 24,
+    backgroundColor: '#003262',
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 16,
+  },
+  ctaContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  ctaButton: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#003262',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ctaIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#003262',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ctaTextContainer: {
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#003262',
+    marginBottom: 2,
+  },
+  ctaSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  section: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  listingsContainer: {
+    gap: 12,
+  },
+  listingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  grubhubCard: {
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+  },
+  listingHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  listingInfo: {
+    flex: 1,
+  },
+  flex1: {
+    flex: 1,
+  },
+  listingName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  sellerText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  price: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#003262',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  detailsContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  requestButton: {
+    width: '100%',
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  diningButton: {
+    backgroundColor: '#003262',
+  },
+  grubhubButton: {
+    backgroundColor: '#FDB515',
+  },
+  requestButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+});

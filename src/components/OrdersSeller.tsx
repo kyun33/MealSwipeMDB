@@ -1,6 +1,7 @@
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
-import { Star, Clock, MapPin, User } from 'lucide-react';
-import { Button } from './ui/button';
 import type { Screen } from '../App';
 
 interface OrdersSellerProps {
@@ -10,250 +11,78 @@ interface OrdersSellerProps {
 }
 
 export function OrdersSeller({ onNavigate, activeTab, onTabChange }: OrdersSellerProps) {
+  const [selectedTab, setSelectedTab] = useState<'active' | 'completed'>('active');
+  const orders = [
+    { id: 1, type: 'dining', name: 'Foothill', status: 'active', price: 6, buyer: 'Alex T.' },
+    { id: 2, type: 'grubhub', name: 'Brown\'s Cafe', status: 'completed', price: 10, buyer: 'Sophie K.' },
+  ];
+
+  const filteredOrders = orders.filter(o => selectedTab === 'active' ? o.status === 'active' : o.status === 'completed');
+
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="px-6 pt-12 pb-6" style={{ background: 'linear-gradient(135deg, #003262 0%, #004d8b 100%)' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-white" style={{ fontSize: '28px', fontWeight: '700' }}>
-            Seller View
-          </h1>
-          <button
-            onClick={() => onNavigate('orders-buyer')}
-            className="px-4 py-2 rounded-xl text-white"
-            style={{ background: 'rgba(255, 255, 255, 0.2)', fontSize: '13px', fontWeight: '600' }}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>My Sales</Text>
+          <TouchableOpacity onPress={() => onNavigate('orders-buyer')} style={styles.switchButton}>
+            <Text style={styles.switchButtonText}>Switch to Buyer</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            onPress={() => setSelectedTab('active')}
+            style={[styles.tab, selectedTab === 'active' && styles.tabActive]}
           >
-            Switch to Buyer
-          </button>
-        </div>
-        <p className="text-white/80" style={{ fontSize: '14px' }}>
-          Incoming requests for your offers
-        </p>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-4">
-          {/* Request 1 */}
-          <div className="bg-white rounded-2xl p-5 border-2" style={{ borderColor: '#FDB515' }}>
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#003262' }}>
-                <span className="text-white" style={{ fontSize: '18px', fontWeight: '600' }}>
-                  JD
-                </span>
-              </div>
-              <div className="flex-1">
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  Jason D.
-                </h3>
-                <div className="flex items-center gap-1 mt-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star 
-                      key={star} 
-                      className="w-4 h-4 fill-current" 
-                      style={{ color: '#FDB515' }} 
-                    />
-                  ))}
-                  <span style={{ fontSize: '13px', color: '#6B7280', marginLeft: '4px' }}>
-                    5.0
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div style={{ fontSize: '20px', fontWeight: '700', color: '#FDB515' }}>
-                  $10
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <div className="px-3 py-1 rounded-full inline-block mb-2" style={{ background: '#FEF3C7', color: '#92400E', fontSize: '12px', fontWeight: '600' }}>
-                Grubhub Order
-              </div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                Monsoon
-              </h4>
-              <div className="space-y-1 mt-2">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" style={{ color: '#6B7280' }} />
-                  <span style={{ fontSize: '14px', color: '#6B7280' }}>
-                    Unit 3 Lobby
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" style={{ color: '#111827' }} />
-                  <span style={{ fontSize: '14px', color: '#111827' }}>
-                    Requested pickup: 6:45 PM
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => onNavigate('chat-grubhub')}
-                className="flex-1 py-3 rounded-xl border"
-                style={{ 
-                  borderColor: '#FDB515',
-                  background: 'white',
-                  color: '#FDB515',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
-              >
-                Message Buyer
-              </button>
-              <button
-                className="flex-1 py-3 rounded-xl text-white"
-                style={{ 
-                  background: '#10B981',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
-              >
-                Accept Request
-              </button>
-            </div>
-          </div>
-
-          {/* Request 2 */}
-          <div className="bg-white rounded-2xl p-5 border-2" style={{ borderColor: '#003262' }}>
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#FDB515' }}>
-                <span className="text-white" style={{ fontSize: '18px', fontWeight: '600' }}>
-                  MR
-                </span>
-              </div>
-              <div className="flex-1">
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  Maria R.
-                </h3>
-                <div className="flex items-center gap-1 mt-1">
-                  {[1, 2, 3, 4].map((star) => (
-                    <Star 
-                      key={star} 
-                      className="w-4 h-4 fill-current" 
-                      style={{ color: '#FDB515' }} 
-                    />
-                  ))}
-                  <Star className="w-4 h-4" style={{ color: '#E5E7EB' }} />
-                  <span style={{ fontSize: '13px', color: '#6B7280', marginLeft: '4px' }}>
-                    4.2
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div style={{ fontSize: '20px', fontWeight: '700', color: '#003262' }}>
-                  $6
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <div className="px-3 py-1 rounded-full inline-block mb-2" style={{ background: '#DBEAFE', color: '#1E3A8A', fontSize: '12px', fontWeight: '600' }}>
-                Dining Hall
-              </div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                Foothill
-              </h4>
-              <div className="space-y-1 mt-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" style={{ color: '#111827' }} />
-                  <span style={{ fontSize: '14px', color: '#111827' }}>
-                    5:30 PM – 7:00 PM
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-11 rounded-xl border-2"
-                style={{ borderColor: '#DC2626', color: '#DC2626', fontSize: '14px', fontWeight: '600' }}
-              >
-                Decline
-              </Button>
-              <Button
-                className="flex-1 h-11 rounded-xl text-white"
-                style={{ background: '#059669', fontSize: '14px', fontWeight: '600' }}
-              >
-                Accept
-              </Button>
-            </div>
-          </div>
-
-          {/* Request 3 */}
-          <div className="bg-white rounded-2xl p-5 border-2" style={{ borderColor: '#003262' }}>
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#6B7280' }}>
-                <span className="text-white" style={{ fontSize: '18px', fontWeight: '600' }}>
-                  KC
-                </span>
-              </div>
-              <div className="flex-1">
-                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  Kevin C.
-                </h3>
-                <div className="flex items-center gap-1 mt-1">
-                  {[1, 2, 3, 4].map((star) => (
-                    <Star 
-                      key={star} 
-                      className="w-4 h-4 fill-current" 
-                      style={{ color: '#FDB515' }} 
-                    />
-                  ))}
-                  <Star className="w-4 h-4 fill-current" style={{ color: '#E5E7EB' }} />
-                  <span style={{ fontSize: '13px', color: '#6B7280', marginLeft: '4px' }}>
-                    4.6
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div style={{ fontSize: '20px', fontWeight: '700', color: '#003262' }}>
-                  $7
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <div className="px-3 py-1 rounded-full inline-block mb-2" style={{ background: '#DBEAFE', color: '#1E3A8A', fontSize: '12px', fontWeight: '600' }}>
-                Dining Hall
-              </div>
-              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                Cafe 3
-              </h4>
-              <div className="space-y-1 mt-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" style={{ color: '#111827' }} />
-                  <span style={{ fontSize: '14px', color: '#111827' }}>
-                    6:00 PM – 8:00 PM
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-11 rounded-xl border-2"
-                style={{ borderColor: '#DC2626', color: '#DC2626', fontSize: '14px', fontWeight: '600' }}
-              >
-                Decline
-              </Button>
-              <Button
-                className="flex-1 h-11 rounded-xl text-white"
-                style={{ background: '#059669', fontSize: '14px', fontWeight: '600' }}
-              >
-                Accept
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
+            <Text style={[styles.tabText, selectedTab === 'active' && styles.tabTextActive]}>Active</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedTab('completed')}
+            style={[styles.tab, selectedTab === 'completed' && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, selectedTab === 'completed' && styles.tabTextActive]}>Completed</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {filteredOrders.map((order) => (
+          <TouchableOpacity key={order.id} style={styles.orderCard} onPress={() => onNavigate('chat-dining')}>
+            <View style={styles.orderHeader}>
+              <View>
+                <Text style={styles.orderName}>{order.name}</Text>
+                <Text style={styles.buyerName}>Buyer: {order.buyer}</Text>
+              </View>
+              <Text style={styles.orderPrice}>${order.price}</Text>
+            </View>
+            <TouchableOpacity style={styles.chatButton} onPress={() => onNavigate('chat-dining')}>
+              <Text style={styles.chatButtonText}>Chat</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
       <BottomNav activeTab={activeTab} onTabChange={onTabChange} />
-    </div>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 24, backgroundColor: '#003262' },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF' },
+  switchButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+  switchButtonText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tab: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(255, 255, 255, 0.1)', alignItems: 'center' },
+  tabActive: { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
+  tabText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  tabTextActive: { color: '#FFFFFF' },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 24, gap: 16 },
+  orderCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  orderName: { fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 4 },
+  buyerName: { fontSize: 14, color: '#6B7280' },
+  orderPrice: { fontSize: 20, fontWeight: '700', color: '#003262' },
+  chatButton: { backgroundColor: '#003262', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
+  chatButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+});
