@@ -72,6 +72,12 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
       return;
     }
 
+    // Prevent users from accepting their own buyer requests
+    if (request.buyer_id === currentUserId) {
+      Alert.alert('Error', 'You cannot accept your own request');
+      return;
+    }
+
     try {
       // Accept the buyer request
       await acceptBuyerRequest(request.id, currentUserId);

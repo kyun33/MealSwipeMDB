@@ -119,6 +119,12 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
       return;
     }
 
+    // Prevent users from requesting their own offers
+    if (offer.seller_id === currentUserId) {
+      Alert.alert('Error', 'You cannot request your own offer');
+      return;
+    }
+
     try {
       if (type === 'dining') {
         const diningOffer = offer as DiningOffer;
