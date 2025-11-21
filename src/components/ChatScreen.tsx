@@ -207,7 +207,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
                   {order.pickup_time_end ? ` - ${order.pickup_time_end.substring(0, 5)}` : ''}
                 </Text>
               </View>
-              {order.pickup_location && (
+              {order.pickup_location && !(order.item_type === 'grubhub' && currentUserId === order.seller_id) && (
                 <View style={styles.bannerDetail}>
                   <MaterialCommunityIcons name="map-marker-outline" size={12} color="#6B7280" />
                   <Text style={[styles.bannerDetailText, styles.bannerDetailTextSecondary]}>

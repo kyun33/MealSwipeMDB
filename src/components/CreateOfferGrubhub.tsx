@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator, Platform, Modal, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BottomNav } from './BottomNav';
@@ -13,15 +13,19 @@ interface CreateOfferGrubhubProps {
 }
 
 export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: CreateOfferGrubhubProps) {
-  const [restaurant, setRestaurant] = useState<'browns' | 'ladle' | 'monsoon' | ''>('');
   const [location, setLocation] = useState('');
   const [offerDate, setOfferDate] = useState<Date>(new Date());
-  const [maxAmount, setMaxAmount] = useState('');
+  const [startTime, setStartTime] = useState<Date>(new Date());
+  const [endTime, setEndTime] = useState<Date>(new Date());
   const [price, setPrice] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Picker visibility states
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -43,6 +47,15 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
     return `${year}-${month}-${day}`;
   };
 
+  const formatTime = (date: Date): string => {
+    // Round to nearest minute and format as HH:MM (no seconds)
+    const roundedDate = new Date(date);
+    roundedDate.setSeconds(0, 0);
+    const hours = String(roundedDate.getHours()).padStart(2, '0');
+    const minutes = String(roundedDate.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   const formatDisplayDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', { 
       weekday: 'short', 
@@ -52,27 +65,50 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
     });
   };
 
+  const formatDisplayTime = (date: Date): string => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const handleSubmit = async () => {
     if (!currentUserId) {
       Alert.alert('Error', 'Please sign in to create an offer');
       return;
     }
 
-    if (!restaurant || !location || !maxAmount || !price) {
+    if (!location || !price) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    if (startTime >= endTime) {
+      Alert.alert('Error', 'End time must be after start time');
       return;
     }
 
     try {
       setLoading(true);
+      
+      // Build notes with time window information
+      const timeWindowNote = `Time window: ${formatTime(startTime)} - ${formatTime(endTime)}`;
+      const combinedNotes = notes 
+        ? `${timeWindowNote}. ${notes}` 
+        : timeWindowNote;
+      
+      // Schema requires restaurant and max_amount, so we provide defaults
+      // restaurant is required by schema, use a default
+      // max_amount is required by schema, set to price (since it's a meal swipe)
       await createGrubhubOffer({
         seller_id: currentUserId,
-        restaurant: restaurant as any,
+        restaurant: 'browns', // Default since restaurant selection is removed
         pickup_location: location,
         offer_date: formatDate(offerDate),
-        max_amount: parseFloat(maxAmount),
+        max_amount: parseFloat(price), // Set to price since it's a meal swipe
         price: parseFloat(price),
-        notes: notes || undefined
+        notes: combinedNotes
       });
 
       Alert.alert('Success', 'Grubhub offer created successfully!');
@@ -94,22 +130,6 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
         <Text style={styles.headerTitle}>Create Grubhub Offer</Text>
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View>
-          <Text style={styles.label}>Restaurant</Text>
-          <View style={styles.optionsContainer}>
-            {(['browns', 'ladle', 'monsoon'] as const).map((rest) => (
-              <TouchableOpacity
-                key={rest}
-                onPress={() => setRestaurant(rest)}
-                style={[styles.optionButton, restaurant === rest && styles.optionButtonActive]}
-              >
-                <Text style={[styles.optionText, restaurant === rest && styles.optionTextActive]}>
-                  {rest === 'browns' ? 'Brown\'s Cafe' : rest === 'ladle' ? 'Ladle and Leaf' : 'Monsoon'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
         <TextInput
           style={styles.input}
           placeholder="Pickup Location"
@@ -144,13 +164,130 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
           )}
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Max Order Amount ($)"
-          value={maxAmount}
-          onChangeText={setMaxAmount}
-          keyboardType="numeric"
-        />
+        {/* Start Time Picker */}
+        <View>
+          <Text style={styles.label}>Start Time</Text>
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() => setShowStartTimePicker(true)}
+          >
+            <MaterialCommunityIcons name="clock-outline" size={20} color="#003262" />
+            <Text style={styles.pickerButtonText}>{formatDisplayTime(startTime)}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={20} color="#6B7280" />
+          </TouchableOpacity>
+          {Platform.OS === 'ios' && showStartTimePicker && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={showStartTimePicker}
+              onRequestClose={() => setShowStartTimePicker(false)}
+            >
+              <Pressable 
+                style={styles.modalOverlay}
+                onPress={() => setShowStartTimePicker(false)}
+              >
+                <View style={styles.modalContent}>
+                  <DateTimePicker
+                    value={startTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={(event, selectedTime) => {
+                      if (selectedTime) {
+                        setStartTime(selectedTime);
+                      }
+                    }}
+                    is24Hour={false}
+                    minuteInterval={1}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setShowStartTimePicker(false)}
+                  >
+                    <Text style={styles.modalCloseButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            </Modal>
+          )}
+          {Platform.OS === 'android' && showStartTimePicker && (
+            <DateTimePicker
+              value={startTime}
+              mode="time"
+              display="default"
+              onChange={(event, selectedTime) => {
+                setShowStartTimePicker(false);
+                if (event.type !== 'dismissed' && selectedTime) {
+                  setStartTime(selectedTime);
+                }
+              }}
+              is24Hour={false}
+              minuteInterval={1}
+            />
+          )}
+        </View>
+
+        {/* End Time Picker */}
+        <View>
+          <Text style={styles.label}>End Time</Text>
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() => setShowEndTimePicker(true)}
+          >
+            <MaterialCommunityIcons name="clock-outline" size={20} color="#003262" />
+            <Text style={styles.pickerButtonText}>{formatDisplayTime(endTime)}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={20} color="#6B7280" />
+          </TouchableOpacity>
+          {Platform.OS === 'ios' && showEndTimePicker && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={showEndTimePicker}
+              onRequestClose={() => setShowEndTimePicker(false)}
+            >
+              <Pressable 
+                style={styles.modalOverlay}
+                onPress={() => setShowEndTimePicker(false)}
+              >
+                <View style={styles.modalContent}>
+                  <DateTimePicker
+                    value={endTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={(event, selectedTime) => {
+                      if (selectedTime) {
+                        setEndTime(selectedTime);
+                      }
+                    }}
+                    is24Hour={false}
+                    minuteInterval={1}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setShowEndTimePicker(false)}
+                  >
+                    <Text style={styles.modalCloseButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            </Modal>
+          )}
+          {Platform.OS === 'android' && showEndTimePicker && (
+            <DateTimePicker
+              value={endTime}
+              mode="time"
+              display="default"
+              onChange={(event, selectedTime) => {
+                setShowEndTimePicker(false);
+                if (event.type !== 'dismissed' && selectedTime) {
+                  setEndTime(selectedTime);
+                }
+              }}
+              is24Hour={false}
+              minuteInterval={1}
+            />
+          )}
+        </View>
+
         <TextInput
           style={styles.input}
           placeholder="Price ($)"
@@ -216,4 +353,28 @@ const styles = StyleSheet.create({
   submitButton: { backgroundColor: '#003262', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   submitButtonDisabled: { backgroundColor: '#9CA3AF' },
   submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalCloseButton: {
+    backgroundColor: '#003262',
+    marginHorizontal: 20,
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

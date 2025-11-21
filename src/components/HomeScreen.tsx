@@ -80,19 +80,24 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
       const grubhubWithSellers = await Promise.all(
         filteredGrubhubOffers.map(async (offer) => {
           const seller = await getProfileById(offer.seller_id);
-          const restaurantNames: Record<string, string> = {
-            browns: 'Brown\'s Cafe',
-            ladle: 'Ladle and Leaf',
-            monsoon: 'Monsoon'
-          };
+          
+          // Extract time window from notes if present
+          let timeWindow: string | undefined;
+          if (offer.notes) {
+            const timeMatch = offer.notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+            if (timeMatch) {
+              timeWindow = `${timeMatch[1]}–${timeMatch[2]}`;
+            }
+          }
+          
           return {
             id: offer.id,
-            name: restaurantNames[offer.restaurant] || offer.restaurant,
+            name: 'Grubhub Meal Swipe',
             price: Number(offer.price),
             rating: seller?.rating || 0,
             sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
             location: offer.pickup_location,
-            pickupTime: offer.offer_date,
+            timeWindow: timeWindow,
             offer
           };
         })
@@ -131,6 +136,18 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
         });
       } else {
         const grubhubOffer = offer as GrubhubOffer;
+        
+        // Extract time window from notes
+        let pickupTimeStart = '12:00';
+        let pickupTimeEnd: string | undefined;
+        if (grubhubOffer.notes) {
+          const timeMatch = grubhubOffer.notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+          if (timeMatch) {
+            pickupTimeStart = timeMatch[1];
+            pickupTimeEnd = timeMatch[2];
+          }
+        }
+        
         await createOrder({
           order_type: 'grubhub_offer',
           grubhub_offer_id: grubhubOffer.id,
@@ -140,7 +157,8 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
           restaurant: grubhubOffer.restaurant,
           pickup_location: grubhubOffer.pickup_location,
           pickup_date: grubhubOffer.offer_date,
-          pickup_time_start: '12:00',
+          pickup_time_start: pickupTimeStart,
+          pickup_time_end: pickupTimeEnd,
           price: Number(grubhubOffer.price)
         });
       }
@@ -268,10 +286,10 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
                         <Text style={styles.detailText}>{listing.location}</Text>
                       </View>
                     )}
-                    {listing.pickupTime && (
+                    {listing.timeWindow && (
                       <View style={styles.detailRow}>
                         <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
-                        <Text style={styles.detailText}>Pickup: {listing.pickupTime}</Text>
+                        <Text style={styles.detailText}>{listing.timeWindow}</Text>
                       </View>
                     )}
                   </View>

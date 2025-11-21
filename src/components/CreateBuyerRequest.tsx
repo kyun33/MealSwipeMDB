@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator, Platform, Modal, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BottomNav } from './BottomNav';
@@ -179,17 +179,25 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
           <View>
             <Text style={styles.label}>Dining Hall</Text>
             <View style={styles.optionsContainer}>
-              {(['foothill', 'cafe3', 'clarkkerr', 'crossroads'] as const).map((hall) => (
-                <TouchableOpacity
-                  key={hall}
-                  onPress={() => setDiningHall(hall)}
-                  style={[styles.optionButton, diningHall === hall && styles.optionButtonActive]}
-                >
-                  <Text style={[styles.optionText, diningHall === hall && styles.optionTextActive]}>
-                    {hall.charAt(0).toUpperCase() + hall.slice(1).replace(/([A-Z])/g, ' $1')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {(['foothill', 'cafe3', 'clarkkerr', 'crossroads'] as const).map((hall) => {
+                const diningHallNames: Record<string, string> = {
+                  foothill: 'Foothill',
+                  cafe3: 'Cafe 3',
+                  clarkkerr: 'Clark Kerr',
+                  crossroads: 'Crossroads'
+                };
+                return (
+                  <TouchableOpacity
+                    key={hall}
+                    onPress={() => setDiningHall(hall)}
+                    style={[styles.optionButton, diningHall === hall && styles.optionButtonActive]}
+                  >
+                    <Text style={[styles.optionText, diningHall === hall && styles.optionTextActive]}>
+                      {diningHallNames[hall] || hall}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         ) : (
@@ -257,14 +265,48 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
             <Text style={styles.pickerButtonText}>{formatDisplayTime(startTime)}</Text>
             <MaterialCommunityIcons name="chevron-down" size={20} color="#6B7280" />
           </TouchableOpacity>
-          {showStartTimePicker && (
+          {Platform.OS === 'ios' && showStartTimePicker && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={showStartTimePicker}
+              onRequestClose={() => setShowStartTimePicker(false)}
+            >
+              <Pressable 
+                style={styles.modalOverlay}
+                onPress={() => setShowStartTimePicker(false)}
+              >
+                <View style={styles.modalContent}>
+                  <DateTimePicker
+                    value={startTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={(event, selectedTime) => {
+                      if (selectedTime) {
+                        setStartTime(selectedTime);
+                      }
+                    }}
+                    is24Hour={false}
+                    minuteInterval={1}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setShowStartTimePicker(false)}
+                  >
+                    <Text style={styles.modalCloseButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            </Modal>
+          )}
+          {Platform.OS === 'android' && showStartTimePicker && (
             <DateTimePicker
               value={startTime}
               mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display="default"
               onChange={(event, selectedTime) => {
-                setShowStartTimePicker(Platform.OS === 'ios');
-                if (selectedTime) {
+                setShowStartTimePicker(false);
+                if (event.type !== 'dismissed' && selectedTime) {
                   setStartTime(selectedTime);
                 }
               }}
@@ -286,14 +328,48 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
               <Text style={styles.pickerButtonText}>{formatDisplayTime(endTime)}</Text>
               <MaterialCommunityIcons name="chevron-down" size={20} color="#6B7280" />
             </TouchableOpacity>
-            {showEndTimePicker && (
+            {Platform.OS === 'ios' && showEndTimePicker && (
+              <Modal
+                transparent={true}
+                animationType="fade"
+                visible={showEndTimePicker}
+                onRequestClose={() => setShowEndTimePicker(false)}
+              >
+                <Pressable 
+                  style={styles.modalOverlay}
+                  onPress={() => setShowEndTimePicker(false)}
+                >
+                  <View style={styles.modalContent}>
+                    <DateTimePicker
+                      value={endTime}
+                      mode="time"
+                      display="spinner"
+                      onChange={(event, selectedTime) => {
+                        if (selectedTime) {
+                          setEndTime(selectedTime);
+                        }
+                      }}
+                      is24Hour={false}
+                      minuteInterval={1}
+                    />
+                    <TouchableOpacity
+                      style={styles.modalCloseButton}
+                      onPress={() => setShowEndTimePicker(false)}
+                    >
+                      <Text style={styles.modalCloseButtonText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              </Modal>
+            )}
+            {Platform.OS === 'android' && showEndTimePicker && (
               <DateTimePicker
                 value={endTime}
                 mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                display="default"
                 onChange={(event, selectedTime) => {
-                  setShowEndTimePicker(Platform.OS === 'ios');
-                  if (selectedTime) {
+                  setShowEndTimePicker(false);
+                  if (event.type !== 'dismissed' && selectedTime) {
                     setEndTime(selectedTime);
                   }
                 }}
@@ -374,4 +450,28 @@ const styles = StyleSheet.create({
   submitButton: { backgroundColor: '#003262', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   submitButtonDisabled: { backgroundColor: '#9CA3AF' },
   submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+  },
+  modalCloseButton: {
+    backgroundColor: '#003262',
+    marginHorizontal: 20,
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

@@ -73,12 +73,8 @@ export function OrdersSeller({ onNavigate, activeTab, onTabChange }: OrdersSelle
       };
       return diningHallNames[order.dining_hall!] || order.dining_hall || 'Dining Hall';
     } else {
-      const restaurantNames: Record<string, string> = {
-        browns: 'Brown\'s Cafe',
-        ladle: 'Ladle and Leaf',
-        monsoon: 'Monsoon'
-      };
-      return restaurantNames[order.restaurant!] || order.restaurant || 'Restaurant';
+      // For grubhub orders, always show "Grubhub Offer" instead of restaurant name
+      return 'Grubhub Offer';
     }
   };
 

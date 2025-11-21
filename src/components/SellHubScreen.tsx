@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
 import { getDiningOffers, getGrubhubOffers } from '../services/api';
@@ -73,6 +73,29 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
     }
   };
 
+  const handleCreateOfferPress = () => {
+    Alert.alert(
+      'Choose Offer Type',
+      'What type of offer would you like to create?',
+      [
+        {
+          text: 'Dining Hall',
+          onPress: () => onNavigate('create-dining'),
+          style: 'default'
+        },
+        {
+          text: 'Grubhub',
+          onPress: () => onNavigate('create-grubhub'),
+          style: 'default'
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -85,7 +108,7 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Create Your Own Offer */}
         <TouchableOpacity
-          onPress={() => onNavigate('create-dining')}
+          onPress={handleCreateOfferPress}
           style={[styles.card, styles.diningCard]}
         >
           <View style={styles.cardContent}>
