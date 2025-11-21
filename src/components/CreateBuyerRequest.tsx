@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert,
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BottomNav } from './BottomNav';
-import { createBuyerRequest, auth } from '../services/api';
+import { createBuyerRequest, auth, getMyProfile } from '../services/api';
+import type { CreateBuyerRequestData } from '../services/api';
 import type { Screen } from '../App';
 
 interface CreateBuyerRequestProps {
@@ -51,8 +52,11 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
   };
 
   const formatTime = (date: Date): string => {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // Round to nearest minute and format as HH:MM (no seconds)
+    const roundedDate = new Date(date);
+    roundedDate.setSeconds(0, 0);
+    const hours = String(roundedDate.getHours()).padStart(2, '0');
+    const minutes = String(roundedDate.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
   };
 
@@ -101,18 +105,38 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
 
     try {
       setLoading(true);
-      await createBuyerRequest({
+      
+      // Ensure profile exists before creating buyer request (fixes foreign key issue)
+      const profile = await getMyProfile();
+      if (!profile) {
+        Alert.alert('Error', 'Profile not found. Please try again.');
+        return;
+      }
+      
+      // Build request data, only including defined fields to avoid foreign key issues
+      const requestData: CreateBuyerRequestData = {
         buyer_id: currentUserId,
         request_type: requestType,
-        dining_hall: requestType === 'dining' ? diningHall as any : undefined,
-        restaurant: requestType === 'grubhub' ? restaurant as any : undefined,
-        pickup_location: requestType === 'grubhub' ? location : undefined,
         request_date: formatDate(date),
         start_time: formatTime(startTime),
-        end_time: requestType === 'dining' ? formatTime(endTime) : undefined,
         offer_price: parseFloat(offerPrice),
-        notes: notes || undefined
-      });
+      };
+      
+      // Add type-specific required fields
+      if (requestType === 'dining') {
+        requestData.dining_hall = diningHall as 'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads';
+        requestData.end_time = formatTime(endTime);
+      } else if (requestType === 'grubhub') {
+        requestData.restaurant = restaurant as 'browns' | 'ladle' | 'monsoon';
+        requestData.pickup_location = location;
+      }
+      
+      // Only add notes if provided
+      if (notes && notes.trim()) {
+        requestData.notes = notes.trim();
+      }
+      
+      await createBuyerRequest(requestData);
 
       Alert.alert('Success', 'Buyer request created successfully!');
       onNavigate('home');
@@ -245,6 +269,7 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
                 }
               }}
               is24Hour={false}
+              minuteInterval={1}
             />
           )}
         </View>
@@ -273,6 +298,7 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
                   }
                 }}
                 is24Hour={false}
+                minuteInterval={1}
               />
             )}
           </View>

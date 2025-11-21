@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
 import { getMyProfile, auth } from '../services/api';
+import { supabase } from '../services/supabase';
 import type { Screen } from '../App';
 import type { Profile } from '../services/api';
 
@@ -15,6 +16,7 @@ interface ProfileScreenProps {
 export function ProfileScreen({ onNavigate, activeTab, onTabChange }: ProfileScreenProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -23,16 +25,21 @@ export function ProfileScreen({ onNavigate, activeTab, onTabChange }: ProfileScr
   const loadProfile = async () => {
     try {
       setLoading(true);
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+      
       const userProfile = await getMyProfile();
       if (!userProfile) {
-        // User not authenticated or no profile found
+        // User not authenticated or no profile found/created
         setProfile(null);
         return;
       }
       setProfile(userProfile);
     } catch (error) {
       console.error('Error loading profile:', error);
-      Alert.alert('Error', 'Failed to load profile. Please try again.');
+      // Don't show alert for profile loading errors, just set to null
+      // The UI will show appropriate message
       setProfile(null);
     } finally {
       setLoading(false);
@@ -69,7 +76,19 @@ export function ProfileScreen({ onNavigate, activeTab, onTabChange }: ProfileScr
   if (!profile) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <Text style={styles.loadingText}>No profile found. Please sign in.</Text>
+        <Text style={styles.loadingText}>
+          {isAuthenticated 
+            ? 'Unable to load profile. Please try refreshing or contact support.' 
+            : 'No profile found. Please sign in.'}
+        </Text>
+        {isAuthenticated && (
+          <TouchableOpacity 
+            style={[styles.submitButton, { marginTop: 16, paddingHorizontal: 24 }]} 
+            onPress={loadProfile}
+          >
+            <Text style={styles.submitButtonText}>Retry</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -166,4 +185,6 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', gap: 16 },
   menuText: { flex: 1, fontSize: 16, color: '#111827' },
   logoutText: { color: '#DC2626' },
+  submitButton: { backgroundColor: '#003262', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center' },
+  submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
 });

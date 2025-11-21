@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
+import { getDiningOffers, getGrubhubOffers } from '../services/api';
 import type { Screen } from '../App';
 
 interface SellHubScreenProps {
@@ -11,12 +12,66 @@ interface SellHubScreenProps {
 }
 
 export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScreenProps) {
+  const [avgDiningPrice, setAvgDiningPrice] = useState<string>('$7');
+  const [avgGrubhubPrice, setAvgGrubhubPrice] = useState<string>('$7');
+  const [loadingPrices, setLoadingPrices] = useState(true);
+
   const tips = [
     'Be flexible with timing to attract more buyers',
     'Respond quickly to messages and requests',
     'Clear meeting instructions increase success rate',
     'Higher ratings = more buyer interest'
   ];
+
+  useEffect(() => {
+    loadAveragePrices();
+  }, []);
+
+  const loadAveragePrices = async () => {
+    try {
+      setLoadingPrices(true);
+      const [diningOffers, grubhubOffers] = await Promise.all([
+        getDiningOffers({ status: 'active' }),
+        getGrubhubOffers({ status: 'active' })
+      ]);
+
+      // Calculate average dining hall price
+      if (diningOffers.length > 0) {
+        const prices = diningOffers.map(o => Number(o.price)).filter(p => !isNaN(p) && p > 0);
+        if (prices.length > 0) {
+          const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          setAvgDiningPrice(`$${min.toFixed(0)}-${max.toFixed(0)}`);
+        } else {
+          setAvgDiningPrice('$7');
+        }
+      } else {
+        setAvgDiningPrice('$7');
+      }
+
+      // Calculate average grubhub price
+      if (grubhubOffers.length > 0) {
+        const prices = grubhubOffers.map(o => Number(o.price)).filter(p => !isNaN(p) && p > 0);
+        if (prices.length > 0) {
+          const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          setAvgGrubhubPrice(`$${min.toFixed(0)}-${max.toFixed(0)}`);
+        } else {
+          setAvgGrubhubPrice('$7');
+        }
+      } else {
+        setAvgGrubhubPrice('$7');
+      }
+    } catch (error) {
+      console.error('Error loading average prices:', error);
+      setAvgDiningPrice('$7');
+      setAvgGrubhubPrice('$7');
+    } finally {
+      setLoadingPrices(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -84,11 +139,19 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
         {/* Info Cards */}
         <View style={styles.infoCardsContainer}>
           <View style={styles.infoCard}>
-            <Text style={styles.infoCardPrice}>$5-8</Text>
+            {loadingPrices ? (
+              <ActivityIndicator size="small" color="#003262" />
+            ) : (
+              <Text style={styles.infoCardPrice}>{avgDiningPrice}</Text>
+            )}
             <Text style={styles.infoCardLabel}>Avg dining hall price</Text>
           </View>
           <View style={[styles.infoCard, styles.grubhubInfoCard]}>
-            <Text style={[styles.infoCardPrice, styles.grubhubPrice]}>$8-15</Text>
+            {loadingPrices ? (
+              <ActivityIndicator size="small" color="#FDB515" />
+            ) : (
+              <Text style={[styles.infoCardPrice, styles.grubhubPrice]}>{avgGrubhubPrice}</Text>
+            )}
             <Text style={styles.grubhubInfoCardLabel}>Avg Grubhub price</Text>
           </View>
         </View>

@@ -48,8 +48,11 @@ export function CreateOfferDining({ onNavigate, activeTab, onTabChange }: Create
   };
 
   const formatTime = (date: Date): string => {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // Round to nearest minute and format as HH:MM (no seconds)
+    const roundedDate = new Date(date);
+    roundedDate.setSeconds(0, 0);
+    const hours = String(roundedDate.getHours()).padStart(2, '0');
+    const minutes = String(roundedDate.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
   };
 
@@ -184,6 +187,7 @@ export function CreateOfferDining({ onNavigate, activeTab, onTabChange }: Create
                 }
               }}
               is24Hour={false}
+              minuteInterval={1}
             />
           )}
         </View>
@@ -211,6 +215,7 @@ export function CreateOfferDining({ onNavigate, activeTab, onTabChange }: Create
                 }
               }}
               is24Hour={false}
+              minuteInterval={1}
             />
           )}
         </View>

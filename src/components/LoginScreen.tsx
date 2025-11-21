@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { auth } from '../services/api';
+import { auth, createProfile } from '../services/api';
 import type { Screen } from '../App';
 
 interface LoginScreenProps {
@@ -40,7 +40,25 @@ export function LoginScreen({ onNavigate, onLoginSuccess }: LoginScreenProps) {
     try {
       setLoading(true);
       if (isSignUp) {
-        await auth.signUp(email, password, { full_name: fullName });
+        const signUpData = await auth.signUp(email, password, { full_name: fullName });
+        const user = signUpData?.user;
+        
+        // Create profile after successful signup
+        if (user && user.email) {
+          try {
+            await createProfile({
+              id: user.id,
+              email: user.email,
+              full_name: fullName,
+            });
+            // Rating is set to 5.00 by default in createProfile
+          } catch (profileError: any) {
+            // If profile creation fails (e.g., duplicate), log but don't fail signup
+            console.error('Error creating profile:', profileError);
+            // Profile might already exist, continue anyway
+          }
+        }
+        
         Alert.alert('Success', 'Account created! Please check your email to verify your account.');
         setIsSignUp(false);
         setEmail('');

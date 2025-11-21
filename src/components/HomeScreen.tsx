@@ -46,9 +46,17 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
         getGrubhubOffers({ status: 'active' })
       ]);
 
+      // Filter out user's own offers
+      const filteredDiningOffers = currentUserId 
+        ? diningOffers.filter(offer => offer.seller_id !== currentUserId)
+        : diningOffers;
+      const filteredGrubhubOffers = currentUserId 
+        ? grubhubOffers.filter(offer => offer.seller_id !== currentUserId)
+        : grubhubOffers;
+
       // Fetch seller profiles for dining offers
       const diningWithSellers = await Promise.all(
-        diningOffers.map(async (offer) => {
+        filteredDiningOffers.map(async (offer) => {
           const seller = await getProfileById(offer.seller_id);
           const diningHallNames: Record<string, string> = {
             foothill: 'Foothill',
@@ -70,7 +78,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
 
       // Fetch seller profiles for grubhub offers
       const grubhubWithSellers = await Promise.all(
-        grubhubOffers.map(async (offer) => {
+        filteredGrubhubOffers.map(async (offer) => {
           const seller = await getProfileById(offer.seller_id);
           const restaurantNames: Record<string, string> = {
             browns: 'Brown\'s Cafe',

@@ -16,7 +16,7 @@ CREATE TABLE profiles (
   profile_image_url TEXT,
   id_verification_image_url TEXT,
   id_verified BOOLEAN DEFAULT FALSE,
-  rating DECIMAL(3,2) DEFAULT 0.00,
+  rating DECIMAL(3,2) DEFAULT 5.00,
   total_ratings INTEGER DEFAULT 0,
   total_sales INTEGER DEFAULT 0,
   total_purchases INTEGER DEFAULT 0,

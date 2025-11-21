@@ -40,9 +40,14 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
 
       const buyerRequests = await getBuyerRequests(filters);
 
+      // Filter out user's own requests (sellers shouldn't see their own buyer requests)
+      const filteredRequests = currentUserId 
+        ? buyerRequests.filter(request => request.buyer_id !== currentUserId)
+        : buyerRequests;
+
       // Fetch buyer profiles
       const requestsWithBuyers = await Promise.all(
-        buyerRequests.map(async (request) => {
+        filteredRequests.map(async (request) => {
           const buyer = await getProfileById(request.buyer_id);
           return {
             ...request,
