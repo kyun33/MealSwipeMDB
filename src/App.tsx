@@ -4,7 +4,7 @@ import { OnboardingScreen } from './components/OnboardingScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { IDVerificationScreen } from './components/IDVerificationScreen';
 import { HomeScreen } from './components/HomeScreen';
-import { auth } from './services/api';
+import { auth, getMyProfile } from './services/api';
 import { SellHubScreen } from './components/SellHubScreen';
 import { CreateOfferDining } from './components/CreateOfferDining';
 import { CreateOfferGrubhub } from './components/CreateOfferGrubhub';
@@ -52,6 +52,14 @@ function App() {
     if (user) {
       setIsAuthenticated(true);
       setCurrentScreen('home');
+      
+      // Ensure profile exists when app loads with authenticated user
+      // This handles cases where profile wasn't created during signup
+      try {
+        await getMyProfile();
+      } catch (error) {
+        console.error('Error ensuring profile exists on app load:', error);
+      }
     }
   };
 
@@ -62,9 +70,17 @@ function App() {
     }
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
     setIsAuthenticated(true);
     setCurrentScreen('home');
+    
+    // Ensure profile exists after login
+    // This will create the profile if it doesn't exist (e.g., after email verification)
+    try {
+      await getMyProfile();
+    } catch (error) {
+      console.error('Error ensuring profile exists after login:', error);
+    }
   };
 
   const handleBottomNavChange = (tab: 'buy' | 'sell' | 'orders' | 'profile') => {

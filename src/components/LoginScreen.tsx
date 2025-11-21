@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { auth, createProfile } from '../services/api';
+import { auth, getMyProfile } from '../services/api';
 import type { Screen } from '../App';
 
 interface LoginScreenProps {
   onNavigate: (screen: Screen) => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: () => Promise<void>;
 }
 
 export function LoginScreen({ onNavigate, onLoginSuccess }: LoginScreenProps) {
@@ -40,33 +40,30 @@ export function LoginScreen({ onNavigate, onLoginSuccess }: LoginScreenProps) {
     try {
       setLoading(true);
       if (isSignUp) {
-        const signUpData = await auth.signUp(email, password, { full_name: fullName });
-        const user = signUpData?.user;
-        
-        // Create profile after successful signup
-        if (user && user.email) {
-          try {
-            await createProfile({
-              id: user.id,
-              email: user.email,
-              full_name: fullName,
-            });
-            // Rating is set to 5.00 by default in createProfile
-          } catch (profileError: any) {
-            // If profile creation fails (e.g., duplicate), log but don't fail signup
-            console.error('Error creating profile:', profileError);
-            // Profile might already exist, continue anyway
-          }
-        }
-        
+        // Sign up - profile will be created after email verification and first login
+        await auth.signUp(email, password, { full_name: fullName });
         Alert.alert('Success', 'Account created! Please check your email to verify your account.');
         setIsSignUp(false);
         setEmail('');
         setPassword('');
         setFullName('');
       } else {
+        // Sign in - create profile if it doesn't exist (after email verification)
         await auth.signIn(email, password);
-        onLoginSuccess();
+        
+        // Ensure profile exists after successful login
+        // This will create the profile if it doesn't exist (after email verification)
+        try {
+          const profile = await getMyProfile();
+          if (!profile) {
+            console.warn('Profile could not be created or retrieved after login');
+          }
+        } catch (profileError: any) {
+          console.error('Error ensuring profile exists:', profileError);
+          // Don't block login if profile creation fails
+        }
+        
+        await onLoginSuccess();
       }
     } catch (error: any) {
       console.error('Auth error:', error);
