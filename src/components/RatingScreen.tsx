@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { createRating, getOrderById, auth } from '../services/api';
+import { createRating, getOrderById, updateOrder, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { Order } from '../services/api';
 
@@ -49,7 +49,9 @@ export function RatingScreen({ onNavigate, orderId }: RatingScreenProps) {
     try {
       setLoading(true);
       const ratedUserId = order.buyer_id === currentUserId ? order.seller_id : order.buyer_id;
+      const isBuyer = order.buyer_id === currentUserId;
 
+      // Create the rating
       await createRating({
         order_id: orderId,
         rater_id: currentUserId,
@@ -58,8 +60,15 @@ export function RatingScreen({ onNavigate, orderId }: RatingScreenProps) {
         review_text: comment || undefined
       });
 
+      // Update the order to mark that the buyer or seller has rated
+      await updateOrder(orderId, {
+        [isBuyer ? 'buyer_rated' : 'seller_rated']: true
+      });
+
       Alert.alert('Success', 'Rating submitted successfully!');
-      onNavigate('orders-buyer');
+      
+      // Navigate to the appropriate orders screen
+      onNavigate(isBuyer ? 'orders-buyer' : 'orders-seller');
     } catch (error: any) {
       console.error('Error submitting rating:', error);
       Alert.alert('Error', error.message || 'Failed to submit rating. Please try again.');
@@ -71,7 +80,10 @@ export function RatingScreen({ onNavigate, orderId }: RatingScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => onNavigate('orders-buyer')} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => onNavigate(order?.buyer_id === currentUserId ? 'orders-buyer' : 'orders-seller')} 
+          style={styles.backButton}
+        >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Rate Your Experience</Text>

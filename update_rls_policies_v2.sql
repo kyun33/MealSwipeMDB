@@ -1,5 +1,5 @@
 -- =====================================================
--- UPDATE RLS POLICIES
+-- UPDATE RLS POLICIES - VERSION 2
 -- Run this SQL directly in Supabase SQL Editor
 -- =====================================================
 -- This fixes:
@@ -101,6 +101,8 @@ DROP POLICY IF EXISTS "Users can create orders as buyer" ON orders;
 -- Recreate with check to prevent users from creating orders from their own offers
 -- WITH CHECK: Validates the new row being inserted
 -- Ensures: 1) User is the buyer, 2) Buyer is not the seller (prevents self-orders)
+-- CRITICAL: The profiles policy must allow viewing all profiles for buyer_id/seller_id
+-- foreign key validation to work
 CREATE POLICY "Users can create orders as buyer" ON orders
   FOR INSERT 
   WITH CHECK (
@@ -111,6 +113,9 @@ CREATE POLICY "Users can create orders as buyer" ON orders
 -- =====================================================
 -- VERIFICATION QUERIES (Optional - run to verify policies)
 -- =====================================================
+
+-- Check current policies on profiles
+-- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'profiles';
 
 -- Check current policies on buyer_requests
 -- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'buyer_requests';

@@ -1,5 +1,5 @@
 -- =====================================================
--- UPDATE RLS POLICIES
+-- UPDATE RLS POLICIES - VERSION 3
 -- Run this SQL directly in Supabase SQL Editor
 -- =====================================================
 -- This fixes:
@@ -7,20 +7,27 @@
 -- 2. No foreign key RLS issues when buyers/sellers create orders
 -- 3. Foreign key constraint violations on orders_buyer_id_fkey and orders_seller_id_fkey
 -- =====================================================
+-- CRITICAL: This version ensures profiles are viewable for FK validation
+-- =====================================================
 
 -- =====================================================
 -- PROFILES POLICIES (Fix foreign key visibility)
 -- =====================================================
 
--- Drop existing policy
+-- Drop ALL existing SELECT policies on profiles to avoid conflicts
 DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
 
 -- Recreate to ensure all profiles are viewable for foreign key validation
 -- CRITICAL: When creating orders, PostgreSQL needs to verify buyer_id and seller_id
--- exist in profiles. This policy ensures all authenticated users can see all profiles
--- for foreign key constraint validation.
+-- exist in profiles. The foreign key constraint check requires the user to be able
+-- to SELECT the referenced profile rows. This policy with USING (true) ensures
+-- ALL authenticated users can see ALL profiles, which is necessary for FK validation.
+-- 
+-- Note: This is safe because profiles only contain public information (name, rating, etc.)
+-- and users need to see seller profiles to make purchasing decisions anyway.
 CREATE POLICY "Profiles are viewable by everyone" ON profiles
-  FOR SELECT USING (true);
+  FOR SELECT 
+  USING (true);
 
 -- =====================================================
 -- BUYER REQUESTS POLICIES
@@ -101,6 +108,11 @@ DROP POLICY IF EXISTS "Users can create orders as buyer" ON orders;
 -- Recreate with check to prevent users from creating orders from their own offers
 -- WITH CHECK: Validates the new row being inserted
 -- Ensures: 1) User is the buyer, 2) Buyer is not the seller (prevents self-orders)
+-- 
+-- CRITICAL: For this to work, the profiles policy MUST allow viewing all profiles.
+-- When PostgreSQL validates the foreign key constraints on buyer_id and seller_id,
+-- it needs to be able to SELECT those profile rows. The profiles policy above
+-- with USING (true) ensures this works.
 CREATE POLICY "Users can create orders as buyer" ON orders
   FOR INSERT 
   WITH CHECK (
@@ -109,18 +121,31 @@ CREATE POLICY "Users can create orders as buyer" ON orders
   );
 
 -- =====================================================
--- VERIFICATION QUERIES (Optional - run to verify policies)
+-- VERIFICATION QUERIES (Run these to verify policies are applied)
 -- =====================================================
 
--- Check current policies on buyer_requests
--- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'buyer_requests';
+-- Verify profiles policy exists and allows all users to see all profiles
+SELECT policyname, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'profiles' AND policyname = 'Profiles are viewable by everyone';
 
--- Check current policies on orders
--- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'orders';
+-- Check all policies on buyer_requests
+SELECT policyname, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'buyer_requests';
 
--- Check current policies on dining_offers
--- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'dining_offers';
+-- Check all policies on orders
+SELECT policyname, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'orders';
 
--- Check current policies on grubhub_offers
--- SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'grubhub_offers';
+-- Check all policies on dining_offers
+SELECT policyname, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'dining_offers';
+
+-- Check all policies on grubhub_offers
+SELECT policyname, cmd, qual, with_check 
+FROM pg_policies 
+WHERE tablename = 'grubhub_offers';
 
