@@ -16,7 +16,7 @@ export interface Order {
   pickup_time_start: string;
   pickup_time_end?: string;
   price: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'delivered' | 'cancelled';
   buyer_rated: boolean;
   seller_rated: boolean;
   created_at: string;
@@ -38,10 +38,11 @@ export interface CreateOrderData {
   pickup_time_start: string;
   pickup_time_end?: string;
   price: number;
+  status?: 'pending' | 'confirmed' | 'completed' | 'delivered' | 'cancelled';
 }
 
 export interface UpdateOrderData {
-  status?: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status?: 'pending' | 'confirmed' | 'completed' | 'delivered' | 'cancelled';
   buyer_rated?: boolean;
   seller_rated?: boolean;
 }
@@ -50,7 +51,7 @@ export interface UpdateOrderData {
 export const getOrders = async (filters?: {
   buyer_id?: string;
   seller_id?: string;
-  status?: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status?: 'pending' | 'confirmed' | 'completed' | 'delivered' | 'cancelled';
   item_type?: 'dining' | 'grubhub';
   date_from?: string;
   date_to?: string;
@@ -99,10 +100,17 @@ export const getOrderById = async (id: string): Promise<Order | null> => {
 };
 
 // POST /orders - Create new order
+// Orders are automatically confirmed when created (buyer accepts offer or seller accepts request)
 export const createOrder = async (orderData: CreateOrderData): Promise<Order> => {
+  // Automatically set status to 'confirmed' if not explicitly provided
+  const orderWithStatus = {
+    ...orderData,
+    status: orderData.status || 'confirmed'
+  };
+  
   const { data, error } = await supabase
     .from('orders')
-    .insert(orderData)
+    .insert(orderWithStatus)
     .select()
     .single();
   
@@ -128,9 +136,14 @@ export const confirmOrder = async (id: string): Promise<Order> => {
   return updateOrder(id, { status: 'confirmed' });
 };
 
-// POST /orders/:id/complete - Complete an order
+// POST /orders/:id/complete - Complete an order (seller marks as completed)
 export const completeOrder = async (id: string): Promise<Order> => {
   return updateOrder(id, { status: 'completed' });
+};
+
+// POST /orders/:id/receive - Mark order as received (buyer marks as received)
+export const markOrderAsReceived = async (id: string): Promise<Order> => {
+  return updateOrder(id, { status: 'delivered' });
 };
 
 // POST /orders/:id/cancel - Cancel an order

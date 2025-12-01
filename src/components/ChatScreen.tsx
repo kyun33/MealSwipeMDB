@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getMessages, createMessage, getOrderById, getProfileById, markAllMessagesAsRead, completeOrder, auth } from '../services/api';
+import { getMessages, createMessage, getOrderById, getProfileById, markAllMessagesAsRead, completeOrder, markOrderAsReceived, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { Message as APIMessage, Order } from '../services/api';
 
 interface ChatScreenProps {
-  onNavigate: (screen: Screen) => void;
+  onNavigate: (screen: Screen, orderId?: string) => void;
   orderId?: string;
   orderType?: 'dining' | 'grubhub';
 }
@@ -19,6 +19,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [markingReceived, setMarkingReceived] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -105,11 +106,11 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
   };
 
   const handleCompleteOrder = async () => {
-    if (!orderId || !order) return;
+    if (!orderId || !order || !currentUserId) return;
 
     Alert.alert(
       'Complete Order',
-      'Are you sure you want to mark this order as completed?',
+      'Are you sure you want to mark this order as completed? The buyer will need to confirm receipt.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -120,12 +121,55 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
               setCompleting(true);
               const updatedOrder = await completeOrder(orderId);
               setOrder(updatedOrder);
-              Alert.alert('Success', 'Order marked as completed!');
+              
+              Alert.alert('Success', 'Order marked as completed! Waiting for buyer confirmation.');
             } catch (error: any) {
               console.error('Error completing order:', error);
               Alert.alert('Error', error.message || 'Failed to complete order. Please try again.');
             } finally {
               setCompleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleMarkAsReceived = async () => {
+    if (!orderId || !order || !currentUserId) return;
+
+    Alert.alert(
+      'Mark as Received',
+      'Have you received your order? This will close the order and allow you to rate your experience.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark as Received',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setMarkingReceived(true);
+              const updatedOrder = await markOrderAsReceived(orderId);
+              setOrder(updatedOrder);
+              
+              Alert.alert(
+                'Success',
+                'Order marked as received! Would you like to rate your experience?',
+                [
+                  { text: 'Later', style: 'cancel' },
+                  {
+                    text: 'Rate Now',
+                    onPress: () => {
+                      onNavigate('rating', orderId);
+                    }
+                  }
+                ]
+              );
+            } catch (error: any) {
+              console.error('Error marking order as received:', error);
+              Alert.alert('Error', error.message || 'Failed to mark order as received. Please try again.');
+            } finally {
+              setMarkingReceived(false);
             }
           }
         }
@@ -252,7 +296,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       </View>
 
       {/* Complete Order Button - Only for sellers when order is confirmed */}
-      {currentUserId === order.seller_id && order.status === 'confirmed' && (
+      {currentUserId && order && currentUserId === order.seller_id && order.status === 'confirmed' && (
         <View style={styles.completeOrderContainer}>
           <TouchableOpacity
             onPress={handleCompleteOrder}
@@ -267,6 +311,39 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
                 <Text style={styles.completeOrderText}>Complete Order</Text>
               </>
             )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Mark as Received Button - Only for buyers when order is completed */}
+      {currentUserId && order && currentUserId === order.buyer_id && order.status === 'completed' && (
+        <View style={styles.completeOrderContainer}>
+          <TouchableOpacity
+            onPress={handleMarkAsReceived}
+            disabled={markingReceived}
+            style={[styles.completeOrderButton, markingReceived && styles.completeOrderButtonDisabled]}
+          >
+            {markingReceived ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="package-variant" size={20} color="#FFFFFF" />
+                <Text style={styles.completeOrderText}>Mark as Received</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Rate Order Button - For both buyer and seller when order is delivered */}
+      {currentUserId && order && order.status === 'delivered' && (
+        <View style={styles.completeOrderContainer}>
+          <TouchableOpacity
+            onPress={() => onNavigate('rating', orderId)}
+            style={[styles.completeOrderButton, { backgroundColor: '#FDB515' }]}
+          >
+            <MaterialCommunityIcons name="star" size={20} color="#FFFFFF" />
+            <Text style={styles.completeOrderText}>Rate Order</Text>
           </TouchableOpacity>
         </View>
       )}

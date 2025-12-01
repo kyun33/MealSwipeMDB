@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getOrderById, getProfileById, completeOrder, auth } from '../services/api';
+import { getOrderById, getProfileById, completeOrder, markOrderAsReceived, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { Order } from '../services/api';
 
 interface OrderDetailsDiningProps {
-  onNavigate: (screen: Screen) => void;
+  onNavigate: (screen: Screen, orderId?: string) => void;
   orderId?: string;
 }
 
@@ -16,6 +16,7 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
   const [seller, setSeller] = useState<{ name: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [markingReceived, setMarkingReceived] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,7 +72,7 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
 
     Alert.alert(
       'Complete Order',
-      'Are you sure you want to mark this order as completed?',
+      'Are you sure you want to mark this order as completed? The buyer will need to confirm receipt.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -82,12 +83,55 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
               setCompleting(true);
               const updatedOrder = await completeOrder(orderId);
               setOrder(updatedOrder);
-              Alert.alert('Success', 'Order marked as completed!');
+              
+              Alert.alert('Success', 'Order marked as completed! Waiting for buyer confirmation.');
             } catch (error: any) {
               console.error('Error completing order:', error);
               Alert.alert('Error', error.message || 'Failed to complete order. Please try again.');
             } finally {
               setCompleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleMarkAsReceived = async () => {
+    if (!orderId || !order) return;
+
+    Alert.alert(
+      'Mark as Received',
+      'Have you received your order? This will close the order and allow you to rate your experience.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark as Received',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setMarkingReceived(true);
+              const updatedOrder = await markOrderAsReceived(orderId);
+              setOrder(updatedOrder);
+              
+              Alert.alert(
+                'Success',
+                'Order marked as received! Would you like to rate your experience?',
+                [
+                  { text: 'Later', style: 'cancel' },
+                  {
+                    text: 'Rate Now',
+                    onPress: () => {
+                      onNavigate('rating', orderId);
+                    }
+                  }
+                ]
+              );
+            } catch (error: any) {
+              console.error('Error marking order as received:', error);
+              Alert.alert('Error', error.message || 'Failed to mark order as received. Please try again.');
+            } finally {
+              setMarkingReceived(false);
             }
           }
         }
@@ -119,6 +163,7 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
       case 'pending': return '#F59E0B';
       case 'confirmed': return '#3B82F6';
       case 'completed': return '#10B981';
+      case 'delivered': return '#059669';
       case 'cancelled': return '#EF4444';
       default: return '#6B7280';
     }
@@ -142,7 +187,10 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
   }
 
   const isSeller = currentUserId === order.seller_id;
+  const isBuyer = currentUserId === order.buyer_id;
   const canComplete = isSeller && order.status === 'confirmed';
+  const canMarkReceived = isBuyer && order.status === 'completed';
+  const canRate = order.status === 'delivered';
 
   return (
     <View style={styles.container}>
@@ -227,7 +275,7 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
           )}
         </View>
 
-        {/* Complete Order Button */}
+        {/* Complete Order Button - For sellers */}
         {canComplete && (
           <TouchableOpacity
             onPress={handleCompleteOrder}
@@ -242,6 +290,35 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
                 <Text style={styles.completeButtonText}>Complete Order</Text>
               </>
             )}
+          </TouchableOpacity>
+        )}
+
+        {/* Mark as Received Button - For buyers */}
+        {canMarkReceived && (
+          <TouchableOpacity
+            onPress={handleMarkAsReceived}
+            disabled={markingReceived}
+            style={[styles.completeButton, markingReceived && styles.completeButtonDisabled]}
+          >
+            {markingReceived ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="package-variant" size={20} color="#FFFFFF" />
+                <Text style={styles.completeButtonText}>Mark as Received</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {/* Rate Order Button - For both buyer and seller when delivered */}
+        {canRate && (
+          <TouchableOpacity
+            onPress={() => onNavigate('rating', orderId)}
+            style={[styles.completeButton, { backgroundColor: '#FDB515' }]}
+          >
+            <MaterialCommunityIcons name="star" size={20} color="#FFFFFF" />
+            <Text style={styles.completeButtonText}>Rate Order</Text>
           </TouchableOpacity>
         )}
 

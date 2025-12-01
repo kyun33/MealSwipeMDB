@@ -32,15 +32,11 @@ export function OrdersBuyer({ onNavigate, activeTab, onTabChange }: OrdersBuyerP
       }
       setCurrentUserId(user.id);
 
-      const statusFilter = selectedTab === 'active' 
-        ? ['pending', 'confirmed'] 
-        : ['completed', 'cancelled'];
-
       const allOrders = await getOrders({ buyer_id: user.id });
       const filtered = allOrders.filter(o => 
         selectedTab === 'active' 
-          ? ['pending', 'confirmed'].includes(o.status)
-          : ['completed', 'cancelled'].includes(o.status)
+          ? ['pending', 'confirmed', 'completed'].includes(o.status) // 'completed' = seller completed, waiting for buyer
+          : ['delivered', 'cancelled'].includes(o.status) // 'delivered' = buyer confirmed receipt
       );
 
       setOrders(filtered);
@@ -177,6 +173,7 @@ const styles = StyleSheet.create({
   statusPending: { color: '#F59E0B' },
   statusConfirmed: { color: '#3B82F6' },
   statusCompleted: { color: '#10B981' },
+  statusDelivered: { color: '#059669' },
   statusCancelled: { color: '#EF4444' },
   chatButton: { backgroundColor: '#003262', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
   chatButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
