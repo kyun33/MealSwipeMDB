@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getMessages, createMessage, getOrderById, getProfileById, markAllMessagesAsRead, auth } from '../services/api';
+import { getMessages, createMessage, getOrderById, getProfileById, markAllMessagesAsRead, completeOrder, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { Message as APIMessage, Order } from '../services/api';
 
@@ -18,6 +18,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -103,6 +104,35 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
     }
   };
 
+  const handleCompleteOrder = async () => {
+    if (!orderId || !order) return;
+
+    Alert.alert(
+      'Complete Order',
+      'Are you sure you want to mark this order as completed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          style: 'default',
+          onPress: async () => {
+            try {
+              setCompleting(true);
+              const updatedOrder = await completeOrder(orderId);
+              setOrder(updatedOrder);
+              Alert.alert('Success', 'Order marked as completed!');
+            } catch (error: any) {
+              console.error('Error completing order:', error);
+              Alert.alert('Error', error.message || 'Failed to complete order. Please try again.');
+            } finally {
+              setCompleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -168,7 +198,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity 
-            onPress={() => onNavigate('orders-buyer')}
+            onPress={() => onNavigate(currentUserId === order?.buyer_id ? 'orders-buyer' : 'orders-seller')}
             style={styles.backButton}
           >
             <MaterialCommunityIcons name="arrow-left" size={20} color="#003262" />
@@ -186,7 +216,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => onNavigate(order.item_type === 'dining' ? 'order-details-dining' : 'order-details-grubhub')}
+            onPress={() => onNavigate(order.item_type === 'dining' ? 'order-details-dining' : 'order-details-grubhub', orderId)}
             style={styles.infoButton}
           >
             <MaterialCommunityIcons name="information-outline" size={20} color="#003262" />
@@ -220,6 +250,26 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
           <Text style={styles.bannerPrice}>${Number(order.price)}</Text>
         </View>
       </View>
+
+      {/* Complete Order Button - Only for sellers when order is confirmed */}
+      {currentUserId === order.seller_id && order.status === 'confirmed' && (
+        <View style={styles.completeOrderContainer}>
+          <TouchableOpacity
+            onPress={handleCompleteOrder}
+            disabled={completing}
+            style={[styles.completeOrderButton, completing && styles.completeOrderButtonDisabled]}
+          >
+            {completing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="check-circle" size={20} color="#FFFFFF" />
+                <Text style={styles.completeOrderText}>Complete Order</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Messages */}
       <ScrollView 
@@ -450,6 +500,30 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#003262',
+  },
+  completeOrderContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  completeOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  completeOrderButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  completeOrderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   messagesContainer: {
     flex: 1,

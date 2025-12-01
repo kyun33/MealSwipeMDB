@@ -149,10 +149,10 @@ function App() {
           />
         )}
         {currentScreen === 'order-details-dining' && (
-          <OrderDetailsDining onNavigate={handleNavigate} />
+          <OrderDetailsDining onNavigate={handleNavigate} orderId={selectedOrderId} />
         )}
         {currentScreen === 'order-details-grubhub' && (
-          <OrderDetailsGrubhub onNavigate={handleNavigate} />
+          <OrderDetailsGrubhub onNavigate={handleNavigate} orderId={selectedOrderId} />
         )}
         {currentScreen === 'orders-buyer' && (
           <OrdersBuyer 
