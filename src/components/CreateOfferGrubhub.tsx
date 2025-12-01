@@ -13,6 +13,7 @@ interface CreateOfferGrubhubProps {
 }
 
 export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: CreateOfferGrubhubProps) {
+  const [restaurant, setRestaurant] = useState<'browns' | 'ladle' | 'monsoon' | 'gbc' | ''>('');
   const [location, setLocation] = useState('');
   const [offerDate, setOfferDate] = useState<Date>(new Date());
   const [startTime, setStartTime] = useState<Date>(new Date());
@@ -79,7 +80,7 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
       return;
     }
 
-    if (!location || !price) {
+    if (!restaurant || !location || !price) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -98,12 +99,11 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
         ? `${timeWindowNote}. ${notes}` 
         : timeWindowNote;
       
-      // Schema requires restaurant and max_amount, so we provide defaults
-      // restaurant is required by schema, use a default
+      // Schema requires restaurant and max_amount
       // max_amount is required by schema, set to price (since it's a meal swipe)
       await createGrubhubOffer({
         seller_id: currentUserId,
-        restaurant: 'browns', // Default since restaurant selection is removed
+        restaurant: restaurant as 'browns' | 'ladle' | 'monsoon' | 'gbc', // Type assertion needed since state includes empty string
         pickup_location: location,
         offer_date: formatDate(offerDate),
         max_amount: parseFloat(price), // Set to price since it's a meal swipe
@@ -130,6 +130,30 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
         <Text style={styles.headerTitle}>Create Grubhub Offer</Text>
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View>
+          <Text style={styles.label}>Restaurant</Text>
+          <View style={styles.optionsContainer}>
+            {(['browns', 'ladle', 'monsoon', 'gbc'] as const).map((rest) => {
+              const restaurantNames: Record<string, string> = {
+                browns: 'Browns',
+                ladle: 'Ladle and Leaf',
+                monsoon: 'Monsoon',
+                gbc: 'GBC'
+              };
+              return (
+                <TouchableOpacity
+                  key={rest}
+                  onPress={() => setRestaurant(rest)}
+                  style={[styles.optionButton, restaurant === rest && styles.optionButtonActive]}
+                >
+                  <Text style={[styles.optionText, restaurant === rest && styles.optionTextActive]}>
+                    {restaurantNames[rest] || rest}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Pickup Location"

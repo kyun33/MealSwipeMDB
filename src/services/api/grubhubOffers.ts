@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 export interface GrubhubOffer {
   id: string;
   seller_id: string;
-  restaurant: 'browns' | 'ladle' | 'monsoon';
+  restaurant: 'browns' | 'ladle' | 'monsoon' | 'gbc';
   pickup_location: string;
   offer_date: string;
   max_amount: number;
@@ -16,7 +16,7 @@ export interface GrubhubOffer {
 
 export interface CreateGrubhubOfferData {
   seller_id: string;
-  restaurant: 'browns' | 'ladle' | 'monsoon';
+  restaurant: 'browns' | 'ladle' | 'monsoon' | 'gbc';
   pickup_location: string;
   offer_date: string;
   max_amount: number;
@@ -25,7 +25,7 @@ export interface CreateGrubhubOfferData {
 }
 
 export interface UpdateGrubhubOfferData {
-  restaurant?: 'browns' | 'ladle' | 'monsoon';
+  restaurant?: 'browns' | 'ladle' | 'monsoon' | 'gbc';
   pickup_location?: string;
   offer_date?: string;
   max_amount?: number;

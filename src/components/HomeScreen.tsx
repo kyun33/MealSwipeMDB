@@ -34,6 +34,15 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
     loadData();
   }, []);
 
+  const formatTime12Hour = (timeString: string): string => {
+    // Time is in HH:MM format (24-hour), convert to 12-hour format
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -70,7 +79,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
             price: Number(offer.price),
             rating: seller?.rating || 0,
             sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
-            timeWindow: `${offer.start_time}–${offer.end_time}`,
+            timeWindow: `${formatTime12Hour(offer.start_time)}–${formatTime12Hour(offer.end_time)}`,
             offer
           };
         })
@@ -86,9 +95,16 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
           if (offer.notes) {
             const timeMatch = offer.notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
             if (timeMatch) {
-              timeWindow = `${timeMatch[1]}–${timeMatch[2]}`;
+              timeWindow = `${formatTime12Hour(timeMatch[1])}–${formatTime12Hour(timeMatch[2])}`;
             }
           }
+          
+          const restaurantNames: Record<string, string> = {
+            browns: 'Browns',
+            ladle: 'Ladle and Leaf',
+            monsoon: 'Monsoon',
+            gbc: 'GBC'
+          };
           
           return {
             id: offer.id,
@@ -96,7 +112,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
             price: Number(offer.price),
             rating: seller?.rating || 0,
             sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
-            location: offer.pickup_location,
+            location: restaurantNames[offer.restaurant] || offer.restaurant,
             timeWindow: timeWindow,
             offer
           };
@@ -224,7 +240,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
                 <TouchableOpacity
                   key={listing.id}
                   style={styles.listingCard}
-                  onPress={() => onNavigate('order-details-dining')}
+                  onPress={() => onNavigate('order-details-dining', listing.id)}
                 >
                   <View style={styles.listingHeader}>
                     <View style={styles.listingInfo}>
@@ -269,7 +285,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
                 <TouchableOpacity
                   key={listing.id}
                   style={[styles.listingCard, styles.grubhubCard]}
-                  onPress={() => onNavigate('order-details-grubhub')}
+                  onPress={() => onNavigate('order-details-grubhub', listing.id)}
                 >
                   <View style={styles.listingHeader}>
                     <View style={[styles.listingInfo, styles.flex1]}>
@@ -288,7 +304,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
                   <View style={styles.detailsContainer}>
                     {listing.location && (
                       <View style={styles.detailRow}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6B7280" />
+                        <MaterialCommunityIcons name="store" size={16} color="#6B7280" />
                         <Text style={styles.detailText}>{listing.location}</Text>
                       </View>
                     )}
