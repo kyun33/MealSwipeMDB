@@ -99,15 +99,55 @@ export const updateDiningOffer = async (
   id: string, 
   updates: UpdateDiningOfferData
 ): Promise<DiningOffer> => {
+  // If only updating status to 'sold', use the database function (bypasses RLS)
+  if (Object.keys(updates).length === 1 && updates.status === 'sold') {
+    try {
+      const { error } = await supabase.rpc('mark_dining_offer_sold', {
+        p_offer_id: id
+      });
+      
+      if (error) {
+        // If function doesn't exist, fall back to direct update
+        if (error.code === '42883' || error.message?.includes('does not exist')) {
+          console.log('RPC function not found, using direct update');
+        } else {
+          throw error;
+        }
+      } else {
+        // Function succeeded, fetch the updated offer
+        const { data, error: fetchError } = await supabase
+          .from('dining_offers')
+          .select('*')
+          .eq('id', id)
+          .limit(1);
+        
+        if (fetchError) throw fetchError;
+        if (!data || data.length === 0) {
+          throw new Error('Dining offer not found after update');
+        }
+        return data[0];
+      }
+    } catch (rpcError: any) {
+      // Fall through to direct update if RPC fails
+      if (rpcError.code !== '42883' && !rpcError.message?.includes('does not exist')) {
+        console.warn('RPC function failed, trying direct update:', rpcError);
+      }
+    }
+  }
+  
+  // Direct update (for other fields or if RPC function doesn't exist)
   const { data, error } = await supabase
     .from('dining_offers')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .limit(1);
   
   if (error) throw error;
-  return data;
+  if (!data || data.length === 0) {
+    throw new Error('Dining offer not found or could not be updated');
+  }
+  return data[0];
 };
 
 // DELETE /dining-offers/:id - Delete dining offer

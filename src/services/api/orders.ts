@@ -103,19 +103,78 @@ export const getOrderById = async (id: string): Promise<Order | null> => {
 // Orders are automatically confirmed when created (buyer accepts offer or seller accepts request)
 export const createOrder = async (orderData: CreateOrderData): Promise<Order> => {
   // Automatically set status to 'confirmed' if not explicitly provided
+  const status = orderData.status || 'confirmed';
+  
+  console.log('Creating order with data:', { ...orderData, status });
+  
+  // Skip RPC for now - Supabase RPC has issues with return types
+  // Use direct insert + query method which is more reliable
+  // TODO: Re-enable RPC once Supabase RPC return type issues are resolved
+  
+  // Fallback: Direct insert without SELECT, then query for it
+  // This avoids RLS issues with SELECT after INSERT
   const orderWithStatus = {
     ...orderData,
-    status: orderData.status || 'confirmed'
+    status
   };
   
-  const { data, error } = await supabase
-    .from('orders')
-    .insert(orderWithStatus)
-    .select()
-    .single();
+  console.log('Inserting order (fallback method)...');
   
-  if (error) throw error;
-  return data;
+  // Insert without SELECT to avoid RLS blocking
+  const { error: insertError } = await supabase
+    .from('orders')
+    .insert(orderWithStatus);
+  
+  if (insertError) {
+    console.error('Insert error:', insertError);
+    throw insertError;
+  }
+  
+  console.log('Order inserted, querying for it...');
+  
+  // Wait a brief moment for the insert to complete
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  // Now query for the order we just created
+  // Query by unique combination of fields to find the order
+  let query = supabase
+    .from('orders')
+    .select('*')
+    .eq('buyer_id', orderData.buyer_id)
+    .eq('seller_id', orderData.seller_id)
+    .eq('order_type', orderData.order_type)
+    .eq('status', status)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  
+  // Add offer/request ID filter if present
+  if (orderData.dining_offer_id) {
+    query = query.eq('dining_offer_id', orderData.dining_offer_id);
+  } else if (orderData.grubhub_offer_id) {
+    query = query.eq('grubhub_offer_id', orderData.grubhub_offer_id);
+  } else if (orderData.buyer_request_id) {
+    query = query.eq('buyer_request_id', orderData.buyer_request_id);
+  }
+  
+  const { data: queryData, error: queryError } = await query;
+  
+  if (queryError) {
+    console.error('Query error:', queryError);
+    throw new Error(`Order was created but could not be retrieved: ${queryError.message}`);
+  }
+  
+  if (!queryData || queryData.length === 0) {
+    console.error('No order found after insert. Query params:', {
+      buyer_id: orderData.buyer_id,
+      seller_id: orderData.seller_id,
+      order_type: orderData.order_type,
+      status
+    });
+    throw new Error('Order was created but could not be retrieved. Please refresh and check your orders.');
+  }
+  
+  console.log('Order retrieved successfully:', queryData[0].id);
+  return queryData[0];
 };
 
 // PUT /orders/:id - Update order
