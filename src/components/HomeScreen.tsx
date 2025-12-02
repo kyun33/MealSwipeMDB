@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
-import { getDiningOffers, getGrubhubOffers, getProfileById, createOrder, auth } from '../services/api';
+import { getDiningOffers, getGrubhubOffers, getProfileById, createOrder, updateDiningOffer, updateGrubhubOffer, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { DiningOffer, GrubhubOffer } from '../services/api';
 
@@ -33,6 +33,13 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
   useEffect(() => {
     loadData();
   }, []);
+
+  // Reload data when the screen becomes active (user navigates back to buy tab)
+  useEffect(() => {
+    if (activeTab === 'buy') {
+      loadData();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -128,6 +135,8 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
     try {
       if (type === 'dining') {
         const diningOffer = offer as DiningOffer;
+        
+        // Create the order
         await createOrder({
           order_type: 'dining_offer',
           dining_offer_id: diningOffer.id,
@@ -139,6 +148,15 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
           pickup_time_start: diningOffer.start_time,
           pickup_time_end: diningOffer.end_time,
           price: Number(diningOffer.price)
+        });
+        
+        // Immediately remove from local state for instant UI update (before update call)
+        setDiningListings(prev => prev.filter(listing => listing.id !== diningOffer.id));
+        
+        // Mark the offer as sold so it disappears from the buy page (non-blocking)
+        // If this fails, the offer is already removed from UI, so it's fine
+        updateDiningOffer(diningOffer.id, { status: 'sold' }).catch(err => {
+          console.warn('Failed to update dining offer status (non-critical):', err);
         });
       } else {
         const grubhubOffer = offer as GrubhubOffer;
@@ -154,6 +172,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
           }
         }
         
+        // Create the order
         await createOrder({
           order_type: 'grubhub_offer',
           grubhub_offer_id: grubhubOffer.id,
@@ -167,12 +186,33 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
           pickup_time_end: pickupTimeEnd,
           price: Number(grubhubOffer.price)
         });
+        
+        // Immediately remove from local state for instant UI update (before update call)
+        setGrubhubListings(prev => prev.filter(listing => listing.id !== grubhubOffer.id));
+        
+        // Mark the offer as sold so it disappears from the buy page (non-blocking)
+        // If this fails, the offer is already removed from UI, so it's fine
+        updateGrubhubOffer(grubhubOffer.id, { status: 'sold' }).catch(err => {
+          console.warn('Failed to update grubhub offer status (non-critical):', err);
+        });
       }
+      
       Alert.alert('Success', 'Order created successfully!');
+      // Reload data to refresh the offers list (in case user navigates back)
+      loadData();
       onNavigate('orders-buyer');
     } catch (error: any) {
       console.error('Error creating order:', error);
-      Alert.alert('Error', error.message || 'Failed to create order. Please try again.');
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      Alert.alert(
+        'Error Creating Order', 
+        error.message || error.details || 'Failed to create order. Please try again.\n\nIf this persists, the order may have been created - please check your orders.'
+      );
     }
   };
 
