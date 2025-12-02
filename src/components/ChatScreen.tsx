@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { getMessages, createMessage, getOrderById, getProfileById, markAllMessagesAsRead, completeOrder, markOrderAsReceived, auth } from '../services/api';
+import { supabase } from '../services/supabase';
 import type { Screen } from '../App';
 import type { Message as APIMessage, Order } from '../services/api';
 
@@ -18,6 +20,8 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const [markingReceived, setMarkingReceived] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -81,27 +85,133 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to send images.');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error: any) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const uploadImage = async (imageUri: string): Promise<string> => {
+    if (!orderId || !currentUserId) {
+      throw new Error('Missing order ID or user ID');
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const filename = `${orderId}/${currentUserId}_${timestamp}_${randomString}.jpg`;
+
+    // For React Native, we need to use FormData with the file
+    // Extract the filename from the URI
+    const uriParts = imageUri.split('/');
+    const imageName = uriParts[uriParts.length - 1] || 'image.jpg';
+    
+    // Create FormData with React Native file format
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: imageName,
+    } as any);
+
+    // Get session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Not authenticated');
+    }
+
+    // Upload using Supabase storage REST API
+    // The endpoint format: POST /storage/v1/object/{bucket}/{path}
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+    const uploadUrl = `${supabaseUrl}/storage/v1/object/chat-images/${filename}`;
+    
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+        // Don't set Content-Type - let FormData set it with boundary
+      },
+      body: formData as any,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText || 'Upload failed' };
+      }
+      throw new Error(errorData.message || errorData.error || 'Failed to upload image');
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('chat-images')
+      .getPublicUrl(filename);
+
+    return urlData.publicUrl;
+  };
+
   const handleSend = async () => {
-    if (!inputText.trim() || !orderId || !currentUserId || !order) return;
+    if ((!inputText.trim() && !selectedImage) || !orderId || !currentUserId || !order) return;
 
     try {
       setSending(true);
+      setUploadingImage(!!selectedImage);
       const otherUserId = order.buyer_id === currentUserId ? order.seller_id : order.buyer_id;
+      
+      let imageUrl: string | undefined;
+      if (selectedImage) {
+        try {
+          imageUrl = await uploadImage(selectedImage);
+        } catch (error: any) {
+          console.error('Error uploading image:', error);
+          Alert.alert('Error', 'Failed to upload image. Please try again.');
+          setSending(false);
+          setUploadingImage(false);
+          return;
+        }
+      }
       
       const newMessage = await createMessage({
         order_id: orderId,
         sender_id: currentUserId,
         receiver_id: otherUserId,
-        message_text: inputText.trim()
+        message_text: inputText.trim() || (imageUrl ? '📷 Image' : ''),
+        image_url: imageUrl
       });
 
       setMessages([...messages, newMessage]);
       setInputText('');
+      setSelectedImage(null);
     } catch (error: any) {
       console.error('Error sending message:', error);
       Alert.alert('Error', error.message || 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
+      setUploadingImage(false);
     }
   };
 
@@ -378,12 +488,22 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
                   isMe ? styles.messageBubbleMe : styles.messageBubbleThem
                 ]}
               >
-                <Text style={[
-                  styles.messageText,
-                  isMe ? styles.messageTextMe : styles.messageTextThem
-                ]}>
-                  {message.message_text}
-                </Text>
+                {message.image_url && (
+                  <Image 
+                    source={{ uri: message.image_url }} 
+                    style={styles.messageImage}
+                    resizeMode="cover"
+                  />
+                )}
+                {message.message_text && (
+                  <Text style={[
+                    styles.messageText,
+                    isMe ? styles.messageTextMe : styles.messageTextThem,
+                    message.image_url && styles.messageTextWithImage
+                  ]}>
+                    {message.message_text}
+                  </Text>
+                )}
               </View>
               <Text style={[
                 styles.messageTime,
@@ -414,34 +534,58 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
         ))}
       </ScrollView>
 
+      {/* Selected Image Preview */}
+      {selectedImage && (
+        <View style={styles.imagePreviewContainer}>
+          <Image source={{ uri: selectedImage }} style={styles.imagePreview} resizeMode="cover" />
+          <TouchableOpacity
+            onPress={() => setSelectedImage(null)}
+            style={styles.removeImageButton}
+          >
+            <MaterialCommunityIcons name="close-circle" size={24} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Input Area */}
       <View style={styles.inputContainer}>
+        <TouchableOpacity
+          onPress={handlePickImage}
+          style={styles.imageButton}
+          disabled={sending || uploadingImage}
+        >
+          <MaterialCommunityIcons 
+            name="image-outline" 
+            size={24} 
+            color={sending || uploadingImage ? "#9CA3AF" : "#003262"} 
+          />
+        </TouchableOpacity>
         <View style={styles.inputWrapper}>
           <TextInput
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Type a message..."
+            placeholder={selectedImage ? "Add a caption (optional)..." : "Type a message..."}
             placeholderTextColor="#9CA3AF"
             style={styles.textInput}
             multiline
             maxLength={500}
-            editable={!sending}
+            editable={!sending && !uploadingImage}
           />
           <TouchableOpacity
             onPress={handleSend}
-            disabled={!inputText.trim() || sending}
+            disabled={(!inputText.trim() && !selectedImage) || sending || uploadingImage}
             style={[
               styles.sendButton,
-              (!inputText.trim() || sending) && styles.sendButtonDisabled
+              ((!inputText.trim() && !selectedImage) || sending || uploadingImage) && styles.sendButtonDisabled
             ]}
           >
-            {sending ? (
+            {(sending || uploadingImage) ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <MaterialCommunityIcons 
                 name="send" 
                 size={20} 
-                color={inputText.trim() ? "#FFFFFF" : "#9CA3AF"} 
+                color={(inputText.trim() || selectedImage) ? "#FFFFFF" : "#9CA3AF"} 
               />
             )}
           </TouchableOpacity>
@@ -663,6 +807,15 @@ const styles = StyleSheet.create({
   messageTextThem: {
     color: '#111827',
   },
+  messageTextWithImage: {
+    marginTop: 8,
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 0,
+  },
   messageTime: {
     fontSize: 11,
     color: '#9CA3AF',
@@ -697,14 +850,44 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
   },
+  imagePreviewContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  imagePreview: {
+    width: 150,
+    height: 150,
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    padding: 4,
+  },
   inputContainer: {
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  imageButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   inputWrapper: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 12,

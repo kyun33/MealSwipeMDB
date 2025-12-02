@@ -6,6 +6,7 @@ export interface Message {
   sender_id: string;
   receiver_id: string;
   message_text: string;
+  image_url?: string;
   is_read: boolean;
   created_at: string;
 }
@@ -15,6 +16,7 @@ export interface CreateMessageData {
   sender_id: string;
   receiver_id: string;
   message_text: string;
+  image_url?: string;
 }
 
 // GET /messages - Get messages for an order
