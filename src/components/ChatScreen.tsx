@@ -62,7 +62,37 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       }
 
       setOrder(orderData);
-      setMessages(messagesData);
+      
+      // Generate signed URLs for images if the bucket is private
+      const messagesWithSignedUrls = await Promise.all(
+        messagesData.map(async (message) => {
+          if (message.image_url) {
+            try {
+              // Extract the file path from the URL
+              // Public URLs look like: https://[project].supabase.co/storage/v1/object/public/chat-images/[path]
+              // We need to extract the path after 'chat-images/'
+              const urlParts = message.image_url.split('/chat-images/');
+              if (urlParts.length > 1) {
+                const filePath = urlParts[1];
+                // Create a signed URL that expires in 1 hour
+                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                  .from('chat-images')
+                  .createSignedUrl(filePath, 3600); // 1 hour expiry
+                
+                if (!signedUrlError && signedUrlData) {
+                  return { ...message, image_url: signedUrlData.signedUrl };
+                }
+              }
+            } catch (error) {
+              console.error('Error creating signed URL:', error);
+              // Fall back to original URL
+            }
+          }
+          return message;
+        })
+      );
+      
+      setMessages(messagesWithSignedUrls);
 
       // Load other user's profile
       const otherUserId = orderData.buyer_id === user.id ? orderData.seller_id : orderData.buyer_id;
@@ -166,11 +196,15 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       throw new Error(errorData.message || errorData.error || 'Failed to upload image');
     }
 
-    // Get public URL
+    // Get public URL (if bucket is public) or create signed URL (if bucket is private)
+    // First try public URL
     const { data: urlData } = supabase.storage
       .from('chat-images')
       .getPublicUrl(filename);
 
+    // If bucket is private, we need to create a signed URL
+    // For now, return the public URL - if it doesn't work, the bucket needs to be public
+    // OR we need to generate signed URLs when loading messages
     return urlData.publicUrl;
   };
 
@@ -493,6 +527,12 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
                     source={{ uri: message.image_url }} 
                     style={styles.messageImage}
                     resizeMode="cover"
+                    onError={(error) => {
+                      console.error('Error loading image:', error.nativeEvent.error, message.image_url);
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', message.image_url);
+                    }}
                   />
                 )}
                 {message.message_text && (

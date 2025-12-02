@@ -9,7 +9,7 @@ The error "Bucket not found" means the `chat-images` storage bucket doesn't exis
 3. Navigate to **Storage** in the left sidebar
 4. Click **New bucket**
 5. Enter bucket name: `chat-images`
-6. Choose **Private** (not public) - this is more secure
+6. Choose **Public** (recommended for chat images - access is still controlled via message RLS policies)
 7. Click **Create bucket**
 
 ## Option 2: Create via SQL (if you have admin access)

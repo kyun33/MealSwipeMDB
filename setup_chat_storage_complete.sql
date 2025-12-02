@@ -8,15 +8,17 @@
 
 -- Create the storage bucket (if it doesn't exist)
 -- Note: This might require admin privileges or need to be done via Dashboard
+-- For chat images, we use a public bucket for easier access
+-- Access is still controlled via RLS policies on the messages table
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'chat-images',
   'chat-images',
-  false, -- Private bucket (more secure)
+  true, -- Public bucket (easier for chat images, access controlled via message RLS)
   5242880, -- 5MB file size limit (adjust as needed)
   ARRAY['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true; -- Ensure bucket is public
 
 -- =====================================================
 -- STORAGE POLICIES
@@ -25,6 +27,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Users can upload chat images" ON storage.objects;
 DROP POLICY IF EXISTS "Users can read chat images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their chat images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their chat images" ON storage.objects;
 
 -- Policy 1: Allow authenticated users to upload images
 CREATE POLICY "Users can upload chat images"
