@@ -25,10 +25,10 @@ export function OnboardingScreen({ onGetStarted }: OnboardingScreenProps) {
         {/* Title */}
         <Text style={styles.title}>Bear Bites</Text>
         
-        <Text style={styles.subtitle}>Buy & Sell Meal Swipes</Text>
+        <Text style={styles.subtitle}>Swipe Smarter, Eat Easier</Text>
         
         <Text style={styles.description}>
-          The marketplace for UC Berkeley students to trade dining hall swipes and Grubhub orders
+          The coordination platform for UC Berkeley students to plan dining hall meetups and food pickups
         </Text>
       </View>
 
