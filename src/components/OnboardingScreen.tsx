@@ -25,7 +25,7 @@ export function OnboardingScreen({ onGetStarted }: OnboardingScreenProps) {
         {/* Title */}
         <Text style={styles.title}>Bear Bites</Text>
         
-        <Text style={styles.subtitle}>Swipe Smarter, Eat Easier</Text>
+        <Text style={styles.subtitle}>Maximize Your Meal Swipes</Text>
         
         <Text style={styles.description}>
           The coordination platform for UC Berkeley students to plan dining hall meetups and food pickups
