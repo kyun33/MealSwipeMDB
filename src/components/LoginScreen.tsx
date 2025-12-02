@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { auth, getMyProfile } from '../services/api';
 import type { Screen } from '../App';
@@ -88,7 +88,11 @@ export function LoginScreen({ onNavigate, onLoginSuccess }: LoginScreenProps) {
           </TouchableOpacity>
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
-              <MaterialCommunityIcons name="school" size={48} color="#FFFFFF" />
+              <Image
+                source={require('../../assets/images/bear-with-pizza.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
           </View>
           <Text style={styles.headerTitle}>
@@ -207,15 +211,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
   },
   headerTitle: {
     fontSize: 28,
