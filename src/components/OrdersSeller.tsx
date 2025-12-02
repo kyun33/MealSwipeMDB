@@ -26,6 +26,36 @@ export function OrdersSeller({ onNavigate, activeTab, onTabChange }: OrdersSelle
     loadOrders();
   }, [selectedTab]);
 
+  const isOrderExpired = (order: Order): boolean => {
+    // Check if order is already in a final state (delivered, cancelled)
+    if (['delivered', 'cancelled'].includes(order.status)) {
+      return false;
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    const pickupDate = order.pickup_date;
+    
+    // If pickup date is in the past, it's expired
+    if (pickupDate < today) {
+      return true;
+    }
+    
+    // If pickup date is today, check the time
+    if (pickupDate === today) {
+      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const endTime = order.pickup_time_end || order.pickup_time_start;
+      const endTimePart = endTime.substring(0, 5);
+      
+      // If current time is past the end time, it's expired
+      if (currentTimeStr > endTimePart) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -37,11 +67,15 @@ export function OrdersSeller({ onNavigate, activeTab, onTabChange }: OrdersSelle
       setCurrentUserId(user.id);
 
       const allOrders = await getOrders({ seller_id: user.id });
-      const filtered = allOrders.filter(o => 
-        selectedTab === 'active' 
-          ? ['pending', 'confirmed', 'completed'].includes(o.status) // 'completed' = seller completed, waiting for buyer
-          : ['delivered', 'cancelled'].includes(o.status) // 'delivered' = buyer confirmed receipt
-      );
+      const filtered = allOrders.filter(o => {
+        if (selectedTab === 'active') {
+          // Active tab: show non-expired orders with active statuses
+          return ['pending', 'confirmed', 'completed'].includes(o.status) && !isOrderExpired(o);
+        } else {
+          // Completed tab: show delivered, cancelled, or expired orders
+          return ['delivered', 'cancelled'].includes(o.status) || isOrderExpired(o);
+        }
+      });
 
       // Fetch buyer profiles
       const ordersWithBuyers = await Promise.all(
@@ -76,6 +110,13 @@ export function OrdersSeller({ onNavigate, activeTab, onTabChange }: OrdersSelle
       // For grubhub orders, always show "Grubhub Offer" instead of restaurant name
       return 'Grubhub Offer';
     }
+  };
+
+  const getDisplayStatus = (order: Order): string => {
+    if (isOrderExpired(order)) {
+      return 'expired';
+    }
+    return order.status;
   };
 
   if (loading) {
@@ -129,8 +170,8 @@ export function OrdersSeller({ onNavigate, activeTab, onTabChange }: OrdersSelle
                 <Text style={styles.orderPrice}>${Number(order.price)}</Text>
               </View>
               <View style={styles.statusContainer}>
-                <Text style={[styles.statusText, styles[`status${order.status.charAt(0).toUpperCase() + order.status.slice(1)}` as keyof typeof styles] as any]}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                <Text style={[styles.statusText, styles[`status${getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}` as keyof typeof styles] as any]}>
+                  {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
                 </Text>
               </View>
               <TouchableOpacity 
@@ -177,6 +218,7 @@ const styles = StyleSheet.create({
   statusCompleted: { color: '#10B981' },
   statusDelivered: { color: '#059669' },
   statusCancelled: { color: '#EF4444' },
+  statusExpired: { color: '#6B7280' },
   chatButton: { backgroundColor: '#003262', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
   chatButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 });

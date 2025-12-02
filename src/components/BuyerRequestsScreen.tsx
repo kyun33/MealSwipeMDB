@@ -40,10 +40,10 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
 
       const buyerRequests = await getBuyerRequests(filters);
 
-      // Filter out user's own requests (sellers shouldn't see their own buyer requests)
-      const filteredRequests = currentUserId 
+      // Filter out user's own requests and only show currently active ones
+      const filteredRequests = (currentUserId 
         ? buyerRequests.filter(request => request.buyer_id !== currentUserId)
-        : buyerRequests;
+        : buyerRequests).filter(request => isRequestCurrentlyActive(request));
 
       // Fetch buyer profiles
       const requestsWithBuyers = await Promise.all(
@@ -119,7 +119,36 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
   };
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5); // Format HH:MM
+    // Convert "HH:MM:SS" or "HH:MM" to 12-hour format with AM/PM
+    const timePart = timeString.substring(0, 5); // Get "HH:MM"
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const hour12 = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  };
+
+  const isRequestCurrentlyActive = (request: BuyerRequest): boolean => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    
+    // Check if request date is today
+    if (request.request_date !== today) {
+      return false;
+    }
+    
+    // Get current time in HH:MM format
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    if (request.request_type === 'dining') {
+      // For dining, check if current time is within the time window
+      const startTimePart = request.start_time.substring(0, 5);
+      const endTimePart = request.end_time?.substring(0, 5) || startTimePart;
+      return currentTimeStr >= startTimePart && currentTimeStr <= endTimePart;
+    } else {
+      // For grubhub, check if current time is at or after start time
+      const startTimePart = request.start_time.substring(0, 5);
+      return currentTimeStr >= startTimePart;
+    }
   };
 
   if (loading) {
@@ -164,7 +193,8 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
             const restaurantNames: Record<string, string> = {
               browns: 'Brown\'s Cafe',
               ladle: 'Ladle and Leaf',
-              monsoon: 'Monsoon'
+              monsoon: 'Monsoon',
+              goldenbear: 'Golden Bear Cafe'
             };
 
             return (

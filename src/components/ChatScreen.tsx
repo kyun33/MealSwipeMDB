@@ -323,7 +323,16 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const formatTimeString = (timeString: string): string => {
+    // Convert "HH:MM:SS" or "HH:MM" to 12-hour format with AM/PM
+    const timePart = timeString.substring(0, 5); // Get "HH:MM"
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const hour12 = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -346,7 +355,8 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       const restaurantNames: Record<string, string> = {
         browns: 'Brown\'s Cafe',
         ladle: 'Ladle and Leaf',
-        monsoon: 'Monsoon'
+        monsoon: 'Monsoon',
+        goldenbear: 'Golden Bear Cafe'
       };
       return restaurantNames[order.restaurant!] || order.restaurant || 'Restaurant';
     }
@@ -421,8 +431,8 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
               <View style={styles.bannerDetail}>
                 <MaterialCommunityIcons name="clock-outline" size={12} color="#111827" />
                 <Text style={styles.bannerDetailText}>
-                  {order.pickup_time_start.substring(0, 5)}
-                  {order.pickup_time_end ? ` - ${order.pickup_time_end.substring(0, 5)}` : ''}
+                  {formatTimeString(order.pickup_time_start)}
+                  {order.pickup_time_end ? ` - ${formatTimeString(order.pickup_time_end)}` : ''}
                 </Text>
               </View>
               {order.pickup_location && !(order.item_type === 'grubhub' && currentUserId === order.seller_id) && (

@@ -13,6 +13,7 @@ interface CreateOfferGrubhubProps {
 }
 
 export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: CreateOfferGrubhubProps) {
+  const [restaurant, setRestaurant] = useState<'browns' | 'ladle' | 'monsoon' | 'goldenbear' | ''>('');
   const [location, setLocation] = useState('');
   const [offerDate, setOfferDate] = useState<Date>(new Date());
   const [startTime, setStartTime] = useState<Date>(new Date());
@@ -79,7 +80,7 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
       return;
     }
 
-    if (!location || !price) {
+    if (!restaurant || !location || !price) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -99,11 +100,10 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
         : timeWindowNote;
       
       // Schema requires restaurant and max_amount, so we provide defaults
-      // restaurant is required by schema, use a default
       // max_amount is required by schema, set to price (since it's a meal swipe)
       await createGrubhubOffer({
         seller_id: currentUserId,
-        restaurant: 'browns', // Default since restaurant selection is removed
+        restaurant: restaurant as 'browns' | 'ladle' | 'monsoon' | 'goldenbear',
         pickup_location: location,
         offer_date: formatDate(offerDate),
         max_amount: parseFloat(price), // Set to price since it's a meal swipe
@@ -130,6 +130,22 @@ export function CreateOfferGrubhub({ onNavigate, activeTab, onTabChange }: Creat
         <Text style={styles.headerTitle}>Create Grubhub Offer</Text>
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View>
+          <Text style={styles.label}>Restaurant</Text>
+          <View style={styles.optionsContainer}>
+            {(['browns', 'ladle', 'monsoon', 'goldenbear'] as const).map((rest) => (
+              <TouchableOpacity
+                key={rest}
+                onPress={() => setRestaurant(rest)}
+                style={[styles.optionButton, restaurant === rest && styles.optionButtonActive]}
+              >
+                <Text style={[styles.optionText, restaurant === rest && styles.optionTextActive]}>
+                  {rest === 'browns' ? 'Brown\'s Cafe' : rest === 'ladle' ? 'Ladle and Leaf' : rest === 'monsoon' ? 'Monsoon' : 'Golden Bear Cafe'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Pickup Location"

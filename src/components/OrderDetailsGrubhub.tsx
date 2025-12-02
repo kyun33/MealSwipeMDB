@@ -143,7 +143,8 @@ export function OrderDetailsGrubhub({ onNavigate, orderId }: OrderDetailsGrubhub
     const restaurantNames: Record<string, string> = {
       browns: 'Brown\'s Cafe',
       ladle: 'Ladle and Leaf',
-      monsoon: 'Monsoon'
+      monsoon: 'Monsoon',
+      goldenbear: 'Golden Bear Cafe'
     };
     return restaurantNames[restaurant || ''] || restaurant || 'Restaurant';
   };
@@ -154,7 +155,12 @@ export function OrderDetailsGrubhub({ onNavigate, orderId }: OrderDetailsGrubhub
   };
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5);
+    // Convert "HH:MM:SS" or "HH:MM" to 12-hour format with AM/PM
+    const timePart = timeString.substring(0, 5); // Get "HH:MM"
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const hour12 = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
   };
 
   const getStatusColor = (status: string) => {

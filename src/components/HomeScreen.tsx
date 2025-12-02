@@ -18,8 +18,6 @@ interface ListingWithSeller {
   price: number;
   rating: number;
   sellerName: string;
-  timeWindow?: string;
-  pickupTime?: string;
   location?: string;
   offer: DiningOffer | GrubhubOffer;
 }
@@ -41,6 +39,65 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
     }
   }, [activeTab]);
 
+  const formatTimeString = (timeString: string): string => {
+    // Convert "HH:MM:SS" or "HH:MM" to 12-hour format with AM/PM
+    const timePart = timeString.substring(0, 5); // Get "HH:MM"
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const hour12 = hours % 12 || 12;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  };
+
+  const isCurrentlyActive = (offerDate: string, startTime: string, endTime: string): boolean => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    
+    // Check if offer date is today
+    if (offerDate !== today) {
+      return false;
+    }
+    
+    // Get current time in HH:MM format
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    // Compare times (HH:MM format)
+    const currentTime = currentTimeStr;
+    const startTimePart = startTime.substring(0, 5);
+    const endTimePart = endTime.substring(0, 5);
+    
+    // Check if current time is within the window
+    return currentTime >= startTimePart && currentTime <= endTimePart;
+  };
+
+  const isGrubhubCurrentlyActive = (offerDate: string, notes?: string): boolean => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    
+    // Check if offer date is today
+    if (offerDate !== today) {
+      return false;
+    }
+    
+    // Extract time window from notes
+    if (!notes) {
+      return false;
+    }
+    
+    const timeMatch = notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+    if (!timeMatch) {
+      return false;
+    }
+    
+    const startTime = timeMatch[1];
+    const endTime = timeMatch[2];
+    
+    // Get current time in HH:MM format
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    // Check if current time is within the window
+    return currentTimeStr >= startTime && currentTimeStr <= endTime;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -53,13 +110,14 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
         getGrubhubOffers({ status: 'active' })
       ]);
 
-      // Filter out user's own offers
-      const filteredDiningOffers = currentUserId 
+      // Filter out user's own offers and only show currently active ones
+      const filteredDiningOffers = (currentUserId 
         ? diningOffers.filter(offer => offer.seller_id !== currentUserId)
-        : diningOffers;
-      const filteredGrubhubOffers = currentUserId 
+        : diningOffers).filter(offer => isCurrentlyActive(offer.offer_date, offer.start_time, offer.end_time));
+      
+      const filteredGrubhubOffers = (currentUserId 
         ? grubhubOffers.filter(offer => offer.seller_id !== currentUserId)
-        : grubhubOffers;
+        : grubhubOffers).filter(offer => isGrubhubCurrentlyActive(offer.offer_date, offer.notes));
 
       // Fetch seller profiles for dining offers
       const diningWithSellers = await Promise.all(
@@ -77,7 +135,6 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
             price: Number(offer.price),
             rating: seller?.rating || 0,
             sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
-            timeWindow: `${offer.start_time}–${offer.end_time}`,
             offer
           };
         })
@@ -88,14 +145,13 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
         filteredGrubhubOffers.map(async (offer) => {
           const seller = await getProfileById(offer.seller_id);
           
-          // Extract time window from notes if present
-          let timeWindow: string | undefined;
-          if (offer.notes) {
-            const timeMatch = offer.notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
-            if (timeMatch) {
-              timeWindow = `${timeMatch[1]}–${timeMatch[2]}`;
-            }
-          }
+          // Get restaurant display name
+          const restaurantNames: Record<string, string> = {
+            browns: 'Brown\'s Cafe',
+            ladle: 'Ladle and Leaf',
+            monsoon: 'Monsoon',
+            goldenbear: 'Golden Bear Cafe'
+          };
           
           return {
             id: offer.id,
@@ -103,8 +159,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
             price: Number(offer.price),
             rating: seller?.rating || 0,
             sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
-            location: offer.pickup_location,
-            timeWindow: timeWindow,
+            location: restaurantNames[offer.restaurant] || offer.restaurant,
             offer
           };
         })
@@ -280,11 +335,6 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
                     </View>
                   </View>
 
-                  <View style={styles.timeContainer}>
-                    <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
-                    <Text style={styles.timeText}>{listing.timeWindow}</Text>
-                  </View>
-
                   <TouchableOpacity
                     style={[styles.requestButton, styles.diningButton]}
                     onPress={() => handleRequestSwipe(listing.offer, 'dining')}
@@ -325,20 +375,14 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
                     </View>
                   </View>
 
-                  <View style={styles.detailsContainer}>
-                    {listing.location && (
+                  {listing.location && (
+                    <View style={styles.detailsContainer}>
                       <View style={styles.detailRow}>
-                        <MaterialCommunityIcons name="map-marker-outline" size={16} color="#6B7280" />
+                        <MaterialCommunityIcons name="store" size={16} color="#6B7280" />
                         <Text style={styles.detailText}>{listing.location}</Text>
                       </View>
-                    )}
-                    {listing.timeWindow && (
-                      <View style={styles.detailRow}>
-                        <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
-                        <Text style={styles.detailText}>{listing.timeWindow}</Text>
-                      </View>
-                    )}
-                  </View>
+                    </View>
+                  )}
 
                   <TouchableOpacity
                     style={[styles.requestButton, styles.grubhubButton]}
