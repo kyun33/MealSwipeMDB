@@ -173,7 +173,15 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
             const restaurantNames: Record<string, string> = {
               browns: 'Brown\'s Cafe',
               ladle: 'Ladle and Leaf',
-              monsoon: 'Monsoon'
+              monsoon: 'Monsoon',
+              goldenbear: 'Golden Bear Cafe'
+            };
+
+            // Helper function to get restaurant name with fallback
+            const getRestaurantName = (restaurant?: string) => {
+              if (!restaurant) return 'Restaurant';
+              const normalized = restaurant.toLowerCase().trim();
+              return restaurantNames[normalized] || restaurant;
             };
 
             return (
@@ -198,8 +206,8 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
                 </View>
                 <Text style={styles.requestTitle}>
                   {request.request_type === 'dining' 
-                    ? diningHallNames[request.dining_hall!] || request.dining_hall
-                    : restaurantNames[request.restaurant!] || request.restaurant}
+                    ? diningHallNames[request.dining_hall!] || request.dining_hall || 'Dining Hall'
+                    : getRestaurantName(request.restaurant)}
                 </Text>
                 {request.request_type === 'dining' ? (
                   <View style={styles.detailRow}>

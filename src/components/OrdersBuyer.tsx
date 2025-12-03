@@ -66,9 +66,11 @@ export function OrdersBuyer({ onNavigate, activeTab, onTabChange }: OrdersBuyerP
       const restaurantNames: Record<string, string> = {
         browns: 'Brown\'s Cafe',
         ladle: 'Ladle and Leaf',
-        monsoon: 'Monsoon'
+        monsoon: 'Monsoon',
+        goldenbear: 'Golden Bear Cafe'
       };
-      return restaurantNames[order.restaurant!] || order.restaurant || 'Restaurant';
+      const normalized = order.restaurant?.toLowerCase().trim() || '';
+      return restaurantNames[normalized] || order.restaurant || 'Restaurant';
     }
   };
 

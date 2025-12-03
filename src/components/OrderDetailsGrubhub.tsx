@@ -144,9 +144,11 @@ export function OrderDetailsGrubhub({ onNavigate, orderId }: OrderDetailsGrubhub
     const restaurantNames: Record<string, string> = {
       browns: 'Brown\'s Cafe',
       ladle: 'Ladle and Leaf',
-      monsoon: 'Monsoon'
+      monsoon: 'Monsoon',
+      goldenbear: 'Golden Bear Cafe'
     };
-    return restaurantNames[restaurant || ''] || restaurant || 'Restaurant';
+    const normalized = restaurant?.toLowerCase().trim() || '';
+    return restaurantNames[normalized] || restaurant || 'Restaurant';
   };
 
   const formatDate = (dateString: string) => {

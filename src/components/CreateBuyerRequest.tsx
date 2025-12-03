@@ -16,7 +16,7 @@ interface CreateBuyerRequestProps {
 export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: CreateBuyerRequestProps) {
   const [requestType, setRequestType] = useState<'dining' | 'grubhub'>('dining');
   const [diningHall, setDiningHall] = useState<'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads' | ''>('');
-  const [restaurant, setRestaurant] = useState<'browns' | 'ladle' | 'monsoon' | ''>('');
+  const [restaurant, setRestaurant] = useState<'browns' | 'ladle' | 'monsoon' | 'goldenbear' | ''>('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState<Date>(new Date());
   const [startTime, setStartTime] = useState<Date>(new Date());
@@ -127,7 +127,7 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
       if (requestType === 'dining') {
         requestData.dining_hall = diningHall as 'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads';
       } else if (requestType === 'grubhub') {
-        requestData.restaurant = restaurant as 'browns' | 'ladle' | 'monsoon';
+        requestData.restaurant = restaurant as 'browns' | 'ladle' | 'monsoon' | 'goldenbear';
         requestData.pickup_location = location;
       }
       
@@ -205,14 +205,14 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
             <View>
               <Text style={styles.label}>Restaurant</Text>
               <View style={styles.optionsContainer}>
-                {(['browns', 'ladle', 'monsoon'] as const).map((rest) => (
+                {(['browns', 'ladle', 'monsoon', 'goldenbear'] as const).map((rest) => (
                   <TouchableOpacity
                     key={rest}
                     onPress={() => setRestaurant(rest)}
                     style={[styles.optionButton, restaurant === rest && styles.optionButtonActive]}
                   >
                     <Text style={[styles.optionText, restaurant === rest && styles.optionTextActive]}>
-                      {rest === 'browns' ? 'Brown\'s Cafe' : rest === 'ladle' ? 'Ladle and Leaf' : 'Monsoon'}
+                      {rest === 'browns' ? 'Brown\'s Cafe' : rest === 'ladle' ? 'Ladle and Leaf' : rest === 'monsoon' ? 'Monsoon' : 'Golden Bear Cafe'}
                     </Text>
                   </TouchableOpacity>
                 ))}

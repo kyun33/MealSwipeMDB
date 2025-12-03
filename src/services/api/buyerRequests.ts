@@ -5,7 +5,7 @@ export interface BuyerRequest {
   buyer_id: string;
   request_type: 'dining' | 'grubhub';
   dining_hall?: 'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads';
-  restaurant?: 'browns' | 'ladle' | 'monsoon';
+  restaurant?: 'browns' | 'ladle' | 'monsoon' | 'goldenbear';
   pickup_location?: string;
   request_date: string;
   start_time: string;
@@ -22,7 +22,7 @@ export interface CreateBuyerRequestData {
   buyer_id: string;
   request_type: 'dining' | 'grubhub';
   dining_hall?: 'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads';
-  restaurant?: 'browns' | 'ladle' | 'monsoon';
+  restaurant?: 'browns' | 'ladle' | 'monsoon' | 'goldenbear';
   pickup_location?: string;
   request_date: string;
   start_time: string;
@@ -33,7 +33,7 @@ export interface CreateBuyerRequestData {
 
 export interface UpdateBuyerRequestData {
   dining_hall?: 'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads';
-  restaurant?: 'browns' | 'ladle' | 'monsoon';
+  restaurant?: 'browns' | 'ladle' | 'monsoon' | 'goldenbear';
   pickup_location?: string;
   request_date?: string;
   start_time?: string;
