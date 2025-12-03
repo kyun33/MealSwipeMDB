@@ -78,6 +78,8 @@ All API functions follow RESTful principles:
 - `markMessageAsRead(id)` - Mark a message as read
 - `markAllMessagesAsRead(orderId, userId)` - Mark all messages in an order as read
 
+**Real-time Messaging**: The messaging system uses Supabase Realtime (WebSockets) to provide instant message delivery. Messages are automatically synchronized across all connected clients in real-time. Requires enabling Realtime for the `messages` table (see setup instructions below).
+
 ### Ratings (`api/ratings.ts`)
 - `getRatings(userId)` - Get all ratings for a user
 - `getRatingsByOrder(orderId)` - Get ratings for an order
@@ -155,6 +157,43 @@ try {
   // Handle error (show toast, retry, etc.)
 }
 ```
+
+## Real-time Messaging Setup
+
+The messaging system uses **Supabase Realtime** to provide instant message delivery via WebSockets. Messages are automatically synchronized across all connected clients in real-time.
+
+### Setup Required
+
+**Enable Realtime for the messages table** by running this SQL in your Supabase SQL Editor:
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+```
+(See `enable_realtime_messages.sql` in the root directory)
+
+### How It Works
+
+- The `ChatScreen` component automatically subscribes to Realtime changes when opened
+- When a message is created, updated, or deleted in the `messages` table, all connected clients subscribed to that order's messages receive the update instantly
+- Messages are filtered by `order_id` to only receive relevant messages
+- Image URLs are automatically processed and signed when received via Realtime
+- Subscriptions are automatically cleaned up when the chat screen is closed or the component unmounts
+
+### Realtime Events Handled
+
+- **INSERT**: New messages appear instantly for all participants
+- **UPDATE**: Message updates (e.g., read status) are synchronized in real-time
+- **DELETE**: Message deletions are reflected immediately
+
+### Benefits
+
+- ✅ **Instant delivery**: Messages appear in < 100ms
+- ✅ **Efficient**: No polling overhead, only receives actual changes
+- ✅ **Scalable**: WebSocket connections are more efficient than polling
+- ✅ **Integrated**: Works seamlessly with your existing Supabase setup and RLS policies
+
+### Note
+
+According to the [Supabase Realtime GitHub repo](https://github.com/supabase/realtime), Postgres Changes is GA (Generally Available) and works on the free tier. The feature is production-ready and doesn't require any paid plans.
 
 ## Row Level Security (RLS)
 

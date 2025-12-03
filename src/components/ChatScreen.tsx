@@ -37,6 +37,149 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
+  // Set up Supabase Realtime subscription for messages
+  useEffect(() => {
+    if (!orderId || !currentUserId) return;
+
+    console.log('🔌 [Realtime] Setting up subscription for order:', orderId);
+    console.log('🔌 [Realtime] Current user ID:', currentUserId);
+
+    // Subscribe to changes in the messages table for this order
+    const channel = supabase
+      .channel(`messages:${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'messages',
+          filter: `order_id=eq.${orderId}`,
+        },
+        async (payload) => {
+          console.log('📨 [Realtime] Event received:', {
+            eventType: payload.eventType,
+            messageId: payload.new?.id || payload.old?.id,
+            orderId: payload.new?.order_id || payload.old?.order_id,
+            timestamp: new Date().toISOString(),
+            payload: payload
+          });
+
+          if (payload.eventType === 'INSERT') {
+            // New message received
+            const newMessage = payload.new as APIMessage;
+            console.log('✅ [Realtime] New message INSERT:', {
+              messageId: newMessage.id,
+              senderId: newMessage.sender_id,
+              receiverId: newMessage.receiver_id,
+              isCurrentUserSender: newMessage.sender_id === currentUserId,
+              text: newMessage.message_text?.substring(0, 50) + '...'
+            });
+            
+            // Process image URL if present
+            const processedMessage = await processMessageImageUrl(newMessage);
+
+            // Add new message to state (avoid duplicates)
+            setMessages((prevMessages) => {
+              // Check if message already exists (avoid duplicates)
+              const exists = prevMessages.some((msg) => msg.id === processedMessage.id);
+              if (exists) {
+                console.log('⚠️ [Realtime] Message already exists, skipping duplicate:', processedMessage.id);
+                return prevMessages;
+              }
+              console.log('➕ [Realtime] Adding new message to state');
+              return [...prevMessages, processedMessage].sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
+            });
+
+            // Mark as read if we're the receiver
+            if (newMessage.receiver_id === currentUserId && !newMessage.is_read) {
+              console.log('📖 [Realtime] Marking message as read');
+              try {
+                await markAllMessagesAsRead(orderId, currentUserId);
+              } catch (error) {
+                console.error('❌ [Realtime] Error marking message as read:', error);
+              }
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            // Message updated (e.g., marked as read)
+            const updatedMessage = payload.new as APIMessage;
+            console.log('🔄 [Realtime] Message UPDATE:', {
+              messageId: updatedMessage.id,
+              isRead: updatedMessage.is_read
+            });
+            
+            // Process image URL if present
+            const processedMessage = await processMessageImageUrl(updatedMessage);
+            
+            setMessages((prevMessages) =>
+              prevMessages.map((msg) =>
+                msg.id === processedMessage.id ? processedMessage : msg
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            // Message deleted
+            const deletedMessage = payload.old as APIMessage;
+            console.log('🗑️ [Realtime] Message DELETE:', deletedMessage.id);
+            setMessages((prevMessages) =>
+              prevMessages.filter((msg) => msg.id !== deletedMessage.id)
+            );
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [Realtime] Subscription status changed:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [Realtime] Successfully subscribed to messages for order:', orderId);
+          console.log('✅ [Realtime] Channel name:', `messages:${orderId}`);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ [Realtime] Channel error - check if Realtime is enabled for messages table');
+          console.error('❌ [Realtime] Make sure you ran: ALTER PUBLICATION supabase_realtime ADD TABLE messages;');
+        } else if (status === 'TIMED_OUT') {
+          console.warn('⏱️ [Realtime] Subscription timed out - connection may be slow');
+        } else if (status === 'CLOSED') {
+          console.log('🔌 [Realtime] Subscription closed');
+        } else if (status === 'JOINED') {
+          console.log('👋 [Realtime] Joined channel');
+        } else if (status === 'JOINING') {
+          console.log('🔄 [Realtime] Joining channel...');
+        }
+      });
+
+    // Cleanup: unsubscribe when component unmounts or dependencies change
+    return () => {
+      console.log('🧹 [Realtime] Cleaning up subscription for order:', orderId);
+      supabase.removeChannel(channel);
+    };
+  }, [orderId, currentUserId]);
+
+  // Helper function to process signed URLs for messages with images
+  const processMessageImageUrl = async (message: APIMessage): Promise<APIMessage> => {
+    if (!message.image_url) return message;
+
+    try {
+      // Extract the file path from the URL
+      // Public URLs look like: https://[project].supabase.co/storage/v1/object/public/chat-images/[path]
+      // We need to extract the path after 'chat-images/'
+      const urlParts = message.image_url.split('/chat-images/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        // Create a signed URL that expires in 1 hour
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('chat-images')
+          .createSignedUrl(filePath, 3600); // 1 hour expiry
+        
+        if (!signedUrlError && signedUrlData) {
+          return { ...message, image_url: signedUrlData.signedUrl };
+        }
+      }
+    } catch (error) {
+      console.error('Error creating signed URL:', error);
+      // Fall back to original URL
+    }
+    return message;
+  };
+
   const loadChatData = async () => {
     if (!orderId) return;
 
@@ -65,31 +208,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       
       // Generate signed URLs for images if the bucket is private
       const messagesWithSignedUrls = await Promise.all(
-        messagesData.map(async (message) => {
-          if (message.image_url) {
-            try {
-              // Extract the file path from the URL
-              // Public URLs look like: https://[project].supabase.co/storage/v1/object/public/chat-images/[path]
-              // We need to extract the path after 'chat-images/'
-              const urlParts = message.image_url.split('/chat-images/');
-              if (urlParts.length > 1) {
-                const filePath = urlParts[1];
-                // Create a signed URL that expires in 1 hour
-                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-                  .from('chat-images')
-                  .createSignedUrl(filePath, 3600); // 1 hour expiry
-                
-                if (!signedUrlError && signedUrlData) {
-                  return { ...message, image_url: signedUrlData.signedUrl };
-                }
-              }
-            } catch (error) {
-              console.error('Error creating signed URL:', error);
-              // Fall back to original URL
-            }
-          }
-          return message;
-        })
+        messagesData.map(processMessageImageUrl)
       );
       
       setMessages(messagesWithSignedUrls);
@@ -229,6 +348,7 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
         }
       }
       
+      // Create message and add it optimistically
       const newMessage = await createMessage({
         order_id: orderId,
         sender_id: currentUserId,
@@ -237,7 +357,21 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
         image_url: imageUrl
       });
 
-      setMessages([...messages, newMessage]);
+      // Process image URL if present
+      const processedMessage = await processMessageImageUrl(newMessage);
+
+      // Add message immediately for instant feedback (Realtime will also receive it, but duplicate check prevents duplicates)
+      setMessages((prevMessages) => {
+        const exists = prevMessages.some((msg) => msg.id === processedMessage.id);
+        if (exists) {
+          return prevMessages;
+        }
+        return [...prevMessages, processedMessage].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+
+      // Clear input
       setInputText('');
       setSelectedImage(null);
     } catch (error: any) {
@@ -378,13 +512,6 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
       </View>
     );
   }
-
-  const quickReplies = [
-    'Running 5 min late',
-    'I\'m here!',
-    'Where exactly?',
-    'Thanks!'
-  ];
 
   return (
     <KeyboardAvoidingView 
@@ -564,24 +691,6 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
             </View>
           );
         })}
-      </ScrollView>
-
-      {/* Quick Replies */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.quickRepliesContainer}
-        contentContainerStyle={styles.quickRepliesContent}
-      >
-        {quickReplies.map((reply, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => setInputText(reply)}
-            style={styles.quickReplyButton}
-          >
-            <Text style={styles.quickReplyText}>{reply}</Text>
-          </TouchableOpacity>
-        ))}
       </ScrollView>
 
       {/* Selected Image Preview */}
@@ -876,29 +985,6 @@ const styles = StyleSheet.create({
   },
   messageTimeRight: {
     textAlign: 'right',
-  },
-  quickRepliesContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-  },
-  quickRepliesContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  quickReplyButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-  },
-  quickReplyText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#374151',
   },
   imagePreviewContainer: {
     paddingHorizontal: 24,
