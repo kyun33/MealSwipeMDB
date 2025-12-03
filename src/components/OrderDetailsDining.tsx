@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getOrderById, getProfileById, completeOrder, markOrderAsReceived, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { Order } from '../services/api';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 interface OrderDetailsDiningProps {
   onNavigate: (screen: Screen, orderId?: string) => void;
@@ -155,7 +156,7 @@ export function OrderDetailsDining({ onNavigate, orderId }: OrderDetailsDiningPr
   };
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5);
+    return formatTime12Hour(timeString);
   };
 
   const getStatusColor = (status: string) => {

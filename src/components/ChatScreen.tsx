@@ -369,18 +369,11 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
     );
   }
 
-  const quickReplies = [
-    'Running 5 min late',
-    'I\'m here!',
-    'Where exactly?',
-    'Thanks!'
-  ];
-
   return (
     <KeyboardAvoidingView 
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 20}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -554,24 +547,6 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
             </View>
           );
         })}
-      </ScrollView>
-
-      {/* Quick Replies */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.quickRepliesContainer}
-        contentContainerStyle={styles.quickRepliesContent}
-      >
-        {quickReplies.map((reply, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => setInputText(reply)}
-            style={styles.quickReplyButton}
-          >
-            <Text style={styles.quickReplyText}>{reply}</Text>
-          </TouchableOpacity>
-        ))}
       </ScrollView>
 
       {/* Selected Image Preview */}
@@ -866,29 +841,6 @@ const styles = StyleSheet.create({
   },
   messageTimeRight: {
     textAlign: 'right',
-  },
-  quickRepliesContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-  },
-  quickRepliesContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  quickReplyButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-  },
-  quickReplyText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#374151',
   },
   imagePreviewContainer: {
     paddingHorizontal: 24,

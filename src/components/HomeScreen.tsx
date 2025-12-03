@@ -5,6 +5,7 @@ import { BottomNav } from './BottomNav';
 import { getDiningOffers, getGrubhubOffers, getProfileById, createOrder, updateDiningOffer, updateGrubhubOffer, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { DiningOffer, GrubhubOffer } from '../services/api';
+import { formatTime12Hour, isPastDateTime, isPastDate } from '../utils/timeFormat';
 
 interface HomeScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -53,13 +54,42 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
         getGrubhubOffers({ status: 'active' })
       ]);
 
-      // Filter out user's own offers
-      const filteredDiningOffers = currentUserId 
+      // Filter out user's own offers and past offers
+      const now = new Date();
+      const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      const filteredDiningOffers = (currentUserId 
         ? diningOffers.filter(offer => offer.seller_id !== currentUserId)
-        : diningOffers;
-      const filteredGrubhubOffers = currentUserId 
+        : diningOffers
+      ).filter(offer => {
+        // Filter out offers where date is in the past, or date is today but end_time has passed
+        if (isPastDateTime(offer.offer_date, offer.end_time)) {
+          return false;
+        }
+        return true;
+      });
+      
+      const filteredGrubhubOffers = (currentUserId 
         ? grubhubOffers.filter(offer => offer.seller_id !== currentUserId)
-        : grubhubOffers;
+        : grubhubOffers
+      ).filter(offer => {
+        // For grubhub offers, check if date is in the past
+        // If date is today, check if time window has passed (extract from notes)
+        if (isPastDate(offer.offer_date)) {
+          return false;
+        }
+        // If it's today, check the time window from notes
+        if (offer.offer_date === today && offer.notes) {
+          const timeMatch = offer.notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+          if (timeMatch) {
+            const endTime = timeMatch[2];
+            if (isPastDateTime(offer.offer_date, endTime)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
 
       // Fetch seller profiles for dining offers
       const diningWithSellers = await Promise.all(
@@ -77,7 +107,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
             price: Number(offer.price),
             rating: seller?.rating || 0,
             sellerName: seller?.full_name?.split(' ')[0] + ' ' + (seller?.full_name?.split(' ')[1]?.[0] || '') + '.' || 'Seller',
-            timeWindow: `${offer.start_time}–${offer.end_time}`,
+            timeWindow: `${formatTime12Hour(offer.start_time)}–${formatTime12Hour(offer.end_time)}`,
             offer
           };
         })
@@ -93,7 +123,7 @@ export function HomeScreen({ onNavigate, activeTab, onTabChange }: HomeScreenPro
           if (offer.notes) {
             const timeMatch = offer.notes.match(/Time window:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
             if (timeMatch) {
-              timeWindow = `${timeMatch[1]}–${timeMatch[2]}`;
+              timeWindow = `${formatTime12Hour(timeMatch[1])}–${formatTime12Hour(timeMatch[2])}`;
             }
           }
           

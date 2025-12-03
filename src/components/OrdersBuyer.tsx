@@ -5,6 +5,7 @@ import { BottomNav } from './BottomNav';
 import { getOrders, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { Order } from '../services/api';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 interface OrdersBuyerProps {
   onNavigate: (screen: Screen, orderId?: string) => void;
@@ -49,7 +50,7 @@ export function OrdersBuyer({ onNavigate, activeTab, onTabChange }: OrdersBuyerP
   };
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5);
+    return formatTime12Hour(timeString);
   };
 
   const getOrderName = (order: Order) => {

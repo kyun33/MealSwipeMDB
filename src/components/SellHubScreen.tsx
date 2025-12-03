@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomNav } from './BottomNav';
-import { getDiningOffers, getGrubhubOffers } from '../services/api';
+import { getDiningOffers, getGrubhubOffers, getBuyerRequests, auth } from '../services/api';
 import type { Screen } from '../App';
+import { isPastDateTime } from '../utils/timeFormat';
 
 interface SellHubScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -15,6 +16,8 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
   const [avgDiningPrice, setAvgDiningPrice] = useState<string>('$7');
   const [avgGrubhubPrice, setAvgGrubhubPrice] = useState<string>('$7');
   const [loadingPrices, setLoadingPrices] = useState(true);
+  const [activeRequestsCount, setActiveRequestsCount] = useState<number>(0);
+  const [loadingRequestsCount, setLoadingRequestsCount] = useState(true);
 
   const tips = [
     'Be flexible with timing to attract more buyers',
@@ -25,7 +28,15 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
 
   useEffect(() => {
     loadAveragePrices();
+    loadActiveRequestsCount();
   }, []);
+
+  // Reload data when the screen becomes active (user navigates back to sell tab)
+  useEffect(() => {
+    if (activeTab === 'sell') {
+      loadActiveRequestsCount();
+    }
+  }, [activeTab]);
 
   const loadAveragePrices = async () => {
     try {
@@ -70,6 +81,41 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
       setAvgGrubhubPrice('$7');
     } finally {
       setLoadingPrices(false);
+    }
+  };
+
+  const loadActiveRequestsCount = async () => {
+    try {
+      setLoadingRequestsCount(true);
+      const user = await auth.getCurrentUser();
+      const buyerRequests = await getBuyerRequests({ status: 'active' });
+      
+      // Filter out user's own requests and past requests
+      const filteredRequests = (user?.id 
+        ? buyerRequests.filter(request => request.buyer_id !== user.id)
+        : buyerRequests
+      ).filter(request => {
+        // Filter out requests where date is in the past, or date is today but time has passed
+        if (request.request_type === 'dining' && request.end_time) {
+          // For dining requests, check if end_time has passed
+          if (isPastDateTime(request.request_date, request.end_time)) {
+            return false;
+          }
+        } else {
+          // For grubhub requests, check if start_time has passed
+          if (isPastDateTime(request.request_date, request.start_time)) {
+            return false;
+          }
+        }
+        return true;
+      });
+      
+      setActiveRequestsCount(filteredRequests.length);
+    } catch (error) {
+      console.error('Error loading active requests count:', error);
+      setActiveRequestsCount(0);
+    } finally {
+      setLoadingRequestsCount(false);
     }
   };
 
@@ -153,7 +199,13 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
               </Text>
               <View style={styles.trendingContainer}>
                 <MaterialCommunityIcons name="trending-up" size={16} color="#92400E" />
-                <Text style={styles.trendingText}>6 active requests right now</Text>
+                {loadingRequestsCount ? (
+                  <ActivityIndicator size="small" color="#92400E" />
+                ) : (
+                  <Text style={styles.trendingText}>
+                    {activeRequestsCount} active request{activeRequestsCount !== 1 ? 's' : ''} right now
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -167,7 +219,7 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
             ) : (
               <Text style={styles.infoCardPrice}>{avgDiningPrice}</Text>
             )}
-            <Text style={styles.infoCardLabel}>Avg dining hall price</Text>
+            <Text style={styles.infoCardLabel}>Dining Hall Price Range</Text>
           </View>
           <View style={[styles.infoCard, styles.grubhubInfoCard]}>
             {loadingPrices ? (
@@ -175,7 +227,7 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
             ) : (
               <Text style={[styles.infoCardPrice, styles.grubhubPrice]}>{avgGrubhubPrice}</Text>
             )}
-            <Text style={styles.grubhubInfoCardLabel}>Avg Grubhub price</Text>
+            <Text style={styles.grubhubInfoCardLabel}>Grubhub Price Range</Text>
           </View>
         </View>
 

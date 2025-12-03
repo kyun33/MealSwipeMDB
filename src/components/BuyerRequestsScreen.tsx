@@ -5,6 +5,7 @@ import { BottomNav } from './BottomNav';
 import { getBuyerRequests, getProfileById, acceptBuyerRequest, createOrder, auth } from '../services/api';
 import type { Screen } from '../App';
 import type { BuyerRequest } from '../services/api';
+import { formatTime12Hour, isPastDateTime } from '../utils/timeFormat';
 
 interface BuyerRequestsScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -40,10 +41,25 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
 
       const buyerRequests = await getBuyerRequests(filters);
 
-      // Filter out user's own requests (sellers shouldn't see their own buyer requests)
-      const filteredRequests = currentUserId 
+      // Filter out user's own requests and past requests
+      const filteredRequests = (currentUserId 
         ? buyerRequests.filter(request => request.buyer_id !== currentUserId)
-        : buyerRequests;
+        : buyerRequests
+      ).filter(request => {
+        // Filter out requests where date is in the past, or date is today but time has passed
+        if (request.request_type === 'dining' && request.end_time) {
+          // For dining requests, check if end_time has passed
+          if (isPastDateTime(request.request_date, request.end_time)) {
+            return false;
+          }
+        } else {
+          // For grubhub requests, check if start_time has passed
+          if (isPastDateTime(request.request_date, request.start_time)) {
+            return false;
+          }
+        }
+        return true;
+      });
 
       // Fetch buyer profiles
       const requestsWithBuyers = await Promise.all(
@@ -119,7 +135,7 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
   };
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5); // Format HH:MM
+    return formatTime12Hour(timeString);
   };
 
   if (loading) {
