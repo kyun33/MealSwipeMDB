@@ -46,17 +46,10 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
         ? buyerRequests.filter(request => request.buyer_id !== currentUserId)
         : buyerRequests
       ).filter(request => {
-        // Filter out requests where date is in the past, or date is today but time has passed
-        if (request.request_type === 'dining' && request.end_time) {
-          // For dining requests, check if end_time has passed
-          if (isPastDateTime(request.request_date, request.end_time)) {
-            return false;
-          }
-        } else {
-          // For grubhub requests, check if start_time has passed
-          if (isPastDateTime(request.request_date, request.start_time)) {
-            return false;
-          }
+        // Filter out requests where date is in the past, or date is today but end time has passed
+        const comparisonTime = request.end_time || request.start_time;
+        if (comparisonTime && isPastDateTime(request.request_date, comparisonTime)) {
+          return false;
         }
         return true;
       });
@@ -223,10 +216,19 @@ export function BuyerRequestsScreen({ onNavigate, activeTab, onTabChange }: Buye
                         <Text style={styles.detailText}>{request.pickup_location}</Text>
                       </View>
                     )}
-                    <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
-                      <Text style={styles.detailText}>Pickup: {formatTime(request.start_time)}</Text>
-                    </View>
+                    {request.end_time ? (
+                      <View style={styles.detailRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
+                        <Text style={styles.detailText}>
+                          Pickup: {formatTime(request.start_time)} - {formatTime(request.end_time)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.detailRow}>
+                        <MaterialCommunityIcons name="clock-outline" size={16} color="#111827" />
+                        <Text style={styles.detailText}>Pickup: {formatTime(request.start_time)}</Text>
+                      </View>
+                    )}
                   </>
                 )}
                 {request.notes && (

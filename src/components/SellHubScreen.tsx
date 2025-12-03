@@ -95,17 +95,10 @@ export function SellHubScreen({ onNavigate, activeTab, onTabChange }: SellHubScr
         ? buyerRequests.filter(request => request.buyer_id !== user.id)
         : buyerRequests
       ).filter(request => {
-        // Filter out requests where date is in the past, or date is today but time has passed
-        if (request.request_type === 'dining' && request.end_time) {
-          // For dining requests, check if end_time has passed
-          if (isPastDateTime(request.request_date, request.end_time)) {
-            return false;
-          }
-        } else {
-          // For grubhub requests, check if start_time has passed
-          if (isPastDateTime(request.request_date, request.start_time)) {
-            return false;
-          }
+        // Filter out requests where date is in the past, or date is today but end time has passed
+        const comparisonTime = request.end_time || request.start_time;
+        if (comparisonTime && isPastDateTime(request.request_date, comparisonTime)) {
+          return false;
         }
         return true;
       });

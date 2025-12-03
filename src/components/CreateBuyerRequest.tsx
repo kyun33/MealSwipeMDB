@@ -98,7 +98,7 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
       return;
     }
 
-    if (requestType === 'dining' && startTime >= endTime) {
+    if (startTime >= endTime) {
       Alert.alert('Error', 'End time must be after start time');
       return;
     }
@@ -121,11 +121,11 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
         start_time: formatTime(startTime),
         offer_price: parseFloat(offerPrice),
       };
+      requestData.end_time = formatTime(endTime);
       
       // Add type-specific required fields
       if (requestType === 'dining') {
         requestData.dining_hall = diningHall as 'foothill' | 'cafe3' | 'clarkkerr' | 'crossroads';
-        requestData.end_time = formatTime(endTime);
       } else if (requestType === 'grubhub') {
         requestData.restaurant = restaurant as 'browns' | 'ladle' | 'monsoon';
         requestData.pickup_location = location;
@@ -316,69 +316,67 @@ export function CreateBuyerRequest({ onNavigate, activeTab, onTabChange }: Creat
           )}
         </View>
 
-        {/* End Time Picker (only for dining) */}
-        {requestType === 'dining' && (
-          <View>
-            <Text style={styles.label}>End Time</Text>
-            <TouchableOpacity
-              style={styles.pickerButton}
-              onPress={() => setShowEndTimePicker(true)}
+        {/* End Time Picker */}
+        <View>
+          <Text style={styles.label}>{requestType === 'grubhub' ? 'Latest Pickup Time' : 'End Time'}</Text>
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() => setShowEndTimePicker(true)}
+          >
+            <MaterialCommunityIcons name="clock-outline" size={20} color="#003262" />
+            <Text style={styles.pickerButtonText}>{formatDisplayTime(endTime)}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={20} color="#6B7280" />
+          </TouchableOpacity>
+          {Platform.OS === 'ios' && showEndTimePicker && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={showEndTimePicker}
+              onRequestClose={() => setShowEndTimePicker(false)}
             >
-              <MaterialCommunityIcons name="clock-outline" size={20} color="#003262" />
-              <Text style={styles.pickerButtonText}>{formatDisplayTime(endTime)}</Text>
-              <MaterialCommunityIcons name="chevron-down" size={20} color="#6B7280" />
-            </TouchableOpacity>
-            {Platform.OS === 'ios' && showEndTimePicker && (
-              <Modal
-                transparent={true}
-                animationType="fade"
-                visible={showEndTimePicker}
-                onRequestClose={() => setShowEndTimePicker(false)}
+              <Pressable 
+                style={styles.modalOverlay}
+                onPress={() => setShowEndTimePicker(false)}
               >
-                <Pressable 
-                  style={styles.modalOverlay}
-                  onPress={() => setShowEndTimePicker(false)}
-                >
-                  <View style={styles.modalContent}>
-                    <DateTimePicker
-                      value={endTime}
-                      mode="time"
-                      display="spinner"
-                      onChange={(event, selectedTime) => {
-                        if (selectedTime) {
-                          setEndTime(selectedTime);
-                        }
-                      }}
-                      is24Hour={false}
-                      minuteInterval={1}
-                    />
-                    <TouchableOpacity
-                      style={styles.modalCloseButton}
-                      onPress={() => setShowEndTimePicker(false)}
-                    >
-                      <Text style={styles.modalCloseButtonText}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                </Pressable>
-              </Modal>
-            )}
-            {Platform.OS === 'android' && showEndTimePicker && (
-              <DateTimePicker
-                value={endTime}
-                mode="time"
-                display="default"
-                onChange={(event, selectedTime) => {
-                  setShowEndTimePicker(false);
-                  if (event.type !== 'dismissed' && selectedTime) {
-                    setEndTime(selectedTime);
-                  }
-                }}
-                is24Hour={false}
-                minuteInterval={1}
-              />
-            )}
-          </View>
-        )}
+                <View style={styles.modalContent}>
+                  <DateTimePicker
+                    value={endTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={(event, selectedTime) => {
+                      if (selectedTime) {
+                        setEndTime(selectedTime);
+                      }
+                    }}
+                    is24Hour={false}
+                    minuteInterval={1}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setShowEndTimePicker(false)}
+                  >
+                    <Text style={styles.modalCloseButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            </Modal>
+          )}
+          {Platform.OS === 'android' && showEndTimePicker && (
+            <DateTimePicker
+              value={endTime}
+              mode="time"
+              display="default"
+              onChange={(event, selectedTime) => {
+                setShowEndTimePicker(false);
+                if (event.type !== 'dismissed' && selectedTime) {
+                  setEndTime(selectedTime);
+                }
+              }}
+              is24Hour={false}
+              minuteInterval={1}
+            />
+          )}
+        </View>
 
         <TextInput
           style={styles.input}

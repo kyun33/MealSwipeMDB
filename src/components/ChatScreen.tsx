@@ -107,6 +107,38 @@ export function ChatScreen({ onNavigate, orderId, orderType = 'dining' }: ChatSc
     };
   }, [orderId, currentUserId]);
 
+  // Realtime subscription for order status updates (confirmation & reception)
+  useEffect(() => {
+    if (!orderId) return;
+
+    const channel = supabase
+      .channel(`orders:${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const updatedOrder = payload.new as Order;
+          setOrder((prev) => {
+            // If we already have this order in state, update it; otherwise just set it
+            if (prev && prev.id === updatedOrder.id) {
+              return updatedOrder;
+            }
+            return updatedOrder;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
+
   // Helper function to process signed URLs for messages with images
   const processMessageImageUrl = async (message: APIMessage): Promise<APIMessage> => {
     if (!message.image_url) return message;
