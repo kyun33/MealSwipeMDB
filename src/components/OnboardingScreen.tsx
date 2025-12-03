@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface OnboardingScreenProps {
@@ -14,34 +14,22 @@ export function OnboardingScreen({ onGetStarted }: OnboardingScreenProps) {
         {/* Logo/Icon */}
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <MaterialCommunityIcons name="school" size={64} color="#FFFFFF" />
-          </View>
-          <View style={styles.iconCircle}>
-            <MaterialCommunityIcons name="silverware-fork-knife" size={32} color="#003262" />
+            <Image
+              source={require('../../assets/images/bear-with-pizza.png')}
+              style={styles.bearLogo}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Cal Meal Share</Text>
+        <Text style={styles.title}>Bear Bites</Text>
         
-        <Text style={styles.subtitle}>Buy & Sell Meal Swipes</Text>
+        <Text style={styles.subtitle}>Maximize Your Meal Swipes</Text>
         
         <Text style={styles.description}>
-          The marketplace for UC Berkeley students to trade dining hall swipes and Grubhub orders
+          The coordination platform for UC Berkeley students to plan dining hall meetups and food pickups
         </Text>
-
-        {/* Illustration */}
-        <View style={styles.illustration}>
-          <View style={styles.illustrationBox}>
-            <MaterialCommunityIcons name="silverware-fork-knife" size={40} color="#FFFFFF" />
-          </View>
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.illustrationBoxWhite}>
-            <Text style={styles.emoji}>🍔</Text>
-          </View>
-        </View>
       </View>
 
       {/* Bottom Section */}
@@ -75,15 +63,20 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     position: 'relative',
-    marginBottom: 48,
+    marginBottom: 56,
   },
   logoCircle: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  bearLogo: {
+    width: 150,
+    height: 150,
   },
   iconCircle: {
     position: 'absolute',
@@ -119,45 +112,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 32,
     maxWidth: 280,
-  },
-  illustration: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 24,
-    marginBottom: 64,
-  },
-  illustrationBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  illustrationBoxWhite: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  emoji: {
-    fontSize: 36,
   },
   bottomSection: {
     padding: 32,
